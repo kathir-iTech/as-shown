@@ -28,6 +28,6 @@ Original application code is licensed MIT. Generated assets are provided as labe
 
 ## Interface typography and references
 
-Bricolage Grotesque Variable and Manrope Variable are self-hosted through pinned Fontsource packages (5.3.0), under their bundled SIL Open Font License 1.1 terms. Those licenses remain in their dependency packages; the app does not claim authorship of the fonts. Lucide icons retain their package license. No runtime request to Google Fonts is required.
+Bricolage Grotesque Variable and Manrope Variable are self-hosted through pinned Fontsource packages (5.3.0), under their bundled SIL Open Font License 1.1 terms. Their copyright notices and full license are also served at [font-licenses.txt](https://asshown.vercel.app/font-licenses.txt). The app does not claim authorship of the fonts. Lucide icons retain their package license. No runtime request to Google Fonts is required.
 
 The v3 composition, CSS, source inspector and motion are original application code. Linear's design writing and the public Lusion, Active Theory and Bruno Simon sites informed interaction research; no code, images, proprietary assets or trade dress were copied from those sites. The technical demonstration assets remain the explicitly labelled synthetic images above.
