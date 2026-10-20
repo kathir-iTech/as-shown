@@ -14,6 +14,16 @@ import {
   boundedBytes,
   previewResult,
 } from "../provider/youcam";
+import { reserveRun, finishRun } from "../provider/ledger";
+vi.mock("../provider/ledger", async (original) => {
+  const actual = await original<typeof import("../provider/ledger")>();
+  return {
+    ...actual,
+    reserveRun: vi.fn(),
+    finishRun: vi.fn(),
+    ledgerConfigured: () => true,
+  };
+});
 let fixture: Bundle;
 const sid = "b1395f64-a568-4afa-8162-9b86543dbc3c";
 beforeAll(async () => {
@@ -30,6 +40,16 @@ beforeEach(() => {
   vi.stubEnv("YOUCAM_ALLOW_GENERATION", "true");
   vi.stubEnv("YOUCAM_PREPAID_ONLY_CONFIRMED", "true");
   vi.stubEnv("ASSHOWN_UNIT_RESERVE", "100");
+  vi.mocked(reserveRun).mockResolvedValue({
+    key: "test-run",
+    entry: {
+      fingerprint: "0".repeat(64),
+      state: "reserved",
+      createdAt: Date.now(),
+    },
+    existing: undefined,
+  });
+  vi.mocked(finishRun).mockResolvedValue(undefined);
 });
 afterEach(() => {
   vi.restoreAllMocks();
@@ -64,7 +84,11 @@ async function request(
   );
   return new Request("https://asshown.test/api/preview", {
     method: "POST",
-    headers: { Origin: "https://asshown.test", Cookie: cookie() },
+    headers: {
+      Origin: "https://asshown.test",
+      Cookie: cookie(),
+      "Idempotency-Key": "b1395f64-a568-4afa-8162-9b86543dbc3c",
+    },
     body: form,
   });
 }
@@ -257,4 +281,41 @@ it("rejects provider result hosts rather than fetching arbitrary browser-supplie
     ),
   ).rejects.toMatchObject({ code: "PROVIDER_STORAGE_REJECTED" });
   expect(spy).toHaveBeenCalledTimes(1);
+});
+it("returns an already-reserved known task with zero new provider calls", async () => {
+  const spy = providerMock();
+  const first = await (await createPreview(await request())).json();
+  spy.mockClear();
+  vi.mocked(reserveRun).mockResolvedValue({
+    key: "test-run",
+    entry: {
+      fingerprint: "0".repeat(64),
+      state: "running",
+      createdAt: Date.now(),
+      response: first,
+    },
+    existing: first,
+  });
+  const second = await (await createPreview(await request())).json();
+  expect(second.token).toBe(first.token);
+  expect(second.recovered).toBe(true);
+  expect(spy).not.toHaveBeenCalled();
+});
+it("a ledger failure prevents all provider calls", async () => {
+  const spy = providerMock();
+  vi.mocked(reserveRun).mockRejectedValue(new Error("Ledger unavailable"));
+  await expect(createPreview(await request())).rejects.toThrow(
+    "Ledger unavailable",
+  );
+  expect(spy).not.toHaveBeenCalled();
+});
+it("a failed outcome save still returns the known task without recreating it", async () => {
+  const spy = providerMock();
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.mocked(finishRun).mockRejectedValue(new Error("unavailable"));
+  const result = await (await createPreview(await request())).json();
+  expect(result.state).toBe("running");
+  expect(
+    spy.mock.calls.filter(([url]) => String(url).endsWith("/task/cloth-v3")),
+  ).toHaveLength(1);
 });

@@ -15,6 +15,7 @@ Website: [asshown.vercel.app](https://asshown.vercel.app) · [Source repository]
 - Export a seller-only item package and open it in another browser context.
 - Deliberately approve a live preview. Only the prepared shopper image and garment reference go to YouCam.
 - Review original evidence, mark personal preferences, and save a private decision package. Extract the **complete ZIP** and open `viewer.html` offline.
+- Zoom source evidence in the inspector, locate seller-marked regions, prepare a seller-question draft from your own decisions, and see what changed between revisions. None of these helpers uses a general-purpose AI model.
 
 All public sample people, garments and condition examples are synthetic. The recorded preview is an actual YouCam API output, not a mocked API response. See [the asset ledger](docs/ASSET_LEDGER.md).
 
@@ -36,10 +37,12 @@ For live previews, privately edit `.env.local`:
 - Keep `YOUCAM_API_BASE_URL=https://yce-api-01.makeupar.com`.
 - Enable `YOUCAM_ALLOW_GENERATION` and `YOUCAM_PREPAID_ONLY_CONFIRMED` **only after** verifying prepaid/free units and disabling automatic purchases. Defaults are false.
 - `ASSHOWN_UNIT_RESERVE` defaults to 100 and cannot be lower than 100 in this build.
+- Configure `KV_REST_API_URL` and `KV_REST_API_TOKEN` privately for an authorized Upstash Redis instance. The deployed project uses Free with auto-upgrades and eviction disabled. Missing ledger access disables live generation; recorded examples still work.
+- `ASSHOWN_LIFETIME_UNIT_CAP` defaults to 800 and cannot exceed 800. This conservative app-only allowance is atomically reserved; failed/uncertain requests are not automatically refunded.
 
 Do not put credentials in chat, source, command arguments, screenshots, public logs, or a `NEXT_PUBLIC_` variable. A ChatGPT subscription is not an API subscription; this product uses no separately billed general-purpose LLM API.
 
-The live path rechecks current V3 pricing (no more than two units per result) and active balance before creating a task. It has no checkout, top-up, automatic paid fallback or task-creation retry. Unknown submission outcomes stop and need operator investigation.
+The live path rechecks current V3 pricing (no more than two units per result) and active balance before creating a task. A durable intent ledger prevents concurrent copies of one intent from creating another task during its retention window. Known tasks can be recovered without generating again. It has no checkout, top-up, automatic paid fallback or task-creation retry. Ambiguous outcomes without a known task stop and need operator investigation.
 
 ## Checks and production build
 
@@ -66,13 +69,13 @@ The verifier checks bounded archive structure, manifest/file agreement, image he
 
 ## Architecture and privacy
 
-Next.js 16 / React 19 / TypeScript, Zod, Sharp and fflate. Records and optional drafts use browser memory and IndexedDB. There is no database, cloud upload library, account system, analytics SDK or general-purpose LLM dependency.
+Next.js 16 / React 19 / TypeScript, Zod, Sharp and fflate. Records and optional drafts use browser memory and IndexedDB. Upstash Redis stores only operational reservations, digest commitments, recovery data and pseudonymous rate counters—not photos or buyer notes. There is no cloud photo library, account system, analytics SDK or general-purpose LLM dependency. Bricolage Grotesque and Manrope are self-hosted OFL fonts.
 
 The server validates a minimal structural admission containing identifiers, dimensions, sizes and digests—not seller descriptions, flaw annotations or buyer notes. The complete record is checked in the browser. A structural commitment is not independent verification of withheld source photos. Signed, session-bound run tokens allow status/result retrieval without accepting arbitrary result URLs from the client.
 
 The provider processes the two approved images. Its policy describes USA storage and generally 30-day retention with exceptions. App-local clearing does not erase provider data, platform logs, backups or previous downloads. Read [architecture and limitations](docs/ARCHITECTURE.md) and the in-app Privacy & limits page.
 
-In-process counters or cookies are not a durable global quota. The app's reserve check can race under concurrent requests and is not comprehensive abuse prevention. The hard money boundary is an operator-verified prepaid arrangement with automatic purchases disabled. Monitor free units and pause the feature if needed. No unlimited-live-service promise is made.
+Atomic Lua enforces this app's aggregate unit allowance and session/network hourly limits. It cannot transact with the provider's balance or other applications, and is not comprehensive abuse prevention or an exactly-once distributed transaction. Request records expire in 24 hours; recovery tokens and hourly counter keys last two hours; the aggregate allowance persists. The hard money boundary remains an operator-verified prepaid arrangement with automatic purchases disabled. No unlimited-live-service promise is made.
 
 ## Deployment
 

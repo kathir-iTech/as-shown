@@ -20,6 +20,7 @@ import {
   type Asset,
   type Decision,
   type Preview,
+  type Flaw,
   DISCLOSURE_VERSION,
   referenceOf,
   sha256,
@@ -36,8 +37,11 @@ import {
 } from "@/domain/browser";
 import { exportPackage } from "@/packages/archive";
 import { Photo } from "./photo";
+import { DecisionDesk } from "./decision-desk";
+import { EvidenceInspector } from "./evidence-inspector";
 
 type Pending = {
+  intent?: string;
   stage: "submitting" | "running" | "unknown";
   itemDigest: string;
   referenceDigest: string;
@@ -87,6 +91,7 @@ export function Workspace({
   const [pending, setPending] = useState<Pending>();
   const [preparing, setPreparing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [inspected, setInspected] = useState<Flaw>();
   const lock = useRef(false);
   const [zoom, setZoom] = useState<{
     bytes: Uint8Array;
@@ -237,6 +242,7 @@ export function Workspace({
       await verifyBundle(bundle);
       const sourceDigest = await sha256(shopper);
       const intent: Pending = {
+        intent: crypto.randomUUID(),
         stage: "submitting",
         itemDigest: item.contentDigest,
         referenceDigest: reference.digest,
@@ -282,6 +288,7 @@ export function Workspace({
       sent = true;
       const response = await fetch("/api/preview", {
         method: "POST",
+        headers: { "Idempotency-Key": intent.intent! },
         body: form,
         signal: AbortSignal.timeout(100000),
       });
@@ -338,6 +345,42 @@ export function Workspace({
       onNotice(e instanceof Error ? e.message : "Package could not be saved.");
     } finally {
       setSaving(false);
+    }
+  }
+  async function recover() {
+    if (!pending?.intent || lock.current) return;
+    lock.current = true;
+    try {
+      const response = await fetch("/api/preview/recover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intent: pending.intent }),
+      });
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(
+          data.message || "The submitted request could not be recovered.",
+        );
+      const next: Pending = {
+        ...pending,
+        token: data.token,
+        stage: "running",
+        createdAt: data.createdAt,
+      };
+      await putLocal("pending", next);
+      setPending(next);
+      setStage("running");
+      setMessage(
+        "Recovered the existing task. No new generation or units requested.",
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Recovery could not be confirmed.",
+      );
+    } finally {
+      lock.current = false;
     }
   }
   function decide(id: string, value: Decision) {
@@ -397,6 +440,24 @@ export function Workspace({
           </span>
         </div>
       )}
+      <div className="studio-progress" aria-label="Inspection workflow">
+        <span>
+          <b>01</b> Source record <Check size={14} />
+        </span>
+        <span>
+          <b>02</b> Style preview{" "}
+          {bundle.preview ? <Check size={14} /> : <small>optional</small>}
+        </span>
+        <span>
+          <b>03</b> Condition review{" "}
+          <small>
+            {reviewed}/{item.flaws.length}
+          </small>
+        </span>
+        <span>
+          <b>04</b> Keep your decision
+        </span>
+      </div>
       <div className="review-layout">
         <div className="visual-column">
           <div className="view-header">
@@ -610,6 +671,15 @@ export function Workspace({
               role="status"
             >
               {message}
+              {stage === "unknown" && pending?.intent && (
+                <button
+                  className="button secondary"
+                  onClick={() => void recover()}
+                >
+                  <RefreshCw size={15} />
+                  Recover submitted request
+                </button>
+              )}
               {stage === "paused" && pending?.token && (
                 <button
                   className="button secondary"
@@ -651,20 +721,14 @@ export function Workspace({
                       bytes={bundle.assets[id]}
                       mime={a.mime}
                       alt={a.description}
-                      onClick={() => enlarge(a)}
+                      onClick={() => setInspected(flaw)}
                     />
                   </div>
                 );
               })}
               <button
                 className="text-button"
-                onClick={() => {
-                  const a = item.assets.find(
-                    (a) => a.id === flaw.sourceAssetId,
-                  )!;
-                  setView(a.role);
-                  enlarge(a);
-                }}
+                onClick={() => setInspected(flaw)}
               >
                 Inspect the linked source view <Expand size={14} />
               </button>
@@ -725,6 +789,12 @@ export function Workspace({
           </section>
         </aside>
       </div>
+      <DecisionDesk bundle={bundle} />
+      <EvidenceInspector
+        bundle={bundle}
+        flaw={inspected}
+        onClose={() => setInspected(undefined)}
+      />
       <section className="save-section">
         <div>
           <span className="eyebrow">TAKE THE WHOLE RECORD WITH YOU</span>

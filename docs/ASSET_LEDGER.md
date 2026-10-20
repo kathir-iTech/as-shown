@@ -25,3 +25,9 @@ Use case: precise-object-edit. Asset type: controlled synthetic condition close-
 Source generated PNG: exec-b8ee2dc3-dccc-4912-9347-ad13f8876e6c.png. Each generated derivative is separately labelled rather than represented as a camera crop.
 
 Original application code is licensed MIT. Generated assets are provided as labelled demonstration material; no exclusivity, trademark clearance, or statutory copyright ownership in generated imagery is claimed. Do not reuse them to misrepresent an actual sale or person. No private repo research or participant photos are included.
+
+## Interface typography and references
+
+Bricolage Grotesque Variable and Manrope Variable are self-hosted through pinned Fontsource packages (5.3.0), under their bundled SIL Open Font License 1.1 terms. Those licenses remain in their dependency packages; the app does not claim authorship of the fonts. Lucide icons retain their package license. No runtime request to Google Fonts is required.
+
+The v3 composition, CSS, source inspector and motion are original application code. Linear's design writing and the public Lusion, Active Theory and Bruno Simon sites informed interaction research; no code, images, proprietary assets or trade dress were copied from those sites. The technical demonstration assets remain the explicitly labelled synthetic images above.

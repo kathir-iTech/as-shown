@@ -8,6 +8,14 @@ import {
 } from "node:crypto";
 import { z } from "zod";
 import {
+  LedgerError,
+  ledgerConfigured,
+  intentSchema,
+  reserveRun,
+  finishRun,
+  recoverRun,
+} from "./ledger";
+import {
   admissionSchema,
   imageDimensions,
   MAX_INPUT_BYTES,
@@ -34,7 +42,7 @@ export const json = (body: unknown, status = 200) =>
     },
   });
 export function safeError(error: unknown): Response {
-  const known = error instanceof AppError;
+  const known = error instanceof AppError || error instanceof LedgerError;
   // Log classifications only; never provider bodies, credentials, image data, tokens, or notes.
   console.error(
     JSON.stringify({
@@ -254,7 +262,8 @@ function configured(): boolean {
 }
 export function capability() {
   return {
-    liveEnabled: configured(),
+    liveEnabled: configured() && ledgerConfigured(),
+    durableRequestProtection: ledgerConfigured(),
     provider: "YouCam Clothes VTO V3",
     category: "upper_body",
     disclosureVersion: DISCLOSURE_VERSION,
@@ -535,6 +544,7 @@ async function decodedInput(bytes: Uint8Array): Promise<void> {
 export async function createPreview(request: Request): Promise<Response> {
   sameOrigin(request);
   const owner = session(request);
+  const intent = intentSchema.parse(request.headers.get("Idempotency-Key"));
   const contentType = request.headers.get("content-type") || "";
   if (!contentType.startsWith("multipart/form-data;"))
     throw new AppError("FORM_REQUIRED", "Use the preview form.");
@@ -581,43 +591,97 @@ export async function createPreview(request: Request): Promise<Response> {
       "REFERENCE_CHANGED",
       "The supplied garment image differs from the selected item revision.",
     );
-  await authorizeBudget();
-  const sourceId = await upload(sourceBytes, "shopper");
-  const referenceId = await upload(referenceBytes, "garment");
-  const p = await api(TASK, "POST", {
-    src_file_id: sourceId,
-    ref_file_id: referenceId,
-    garment_category: "upper_body",
-    change_shoes: false,
-  });
-  if (
-    typeof p.data?.task_id !== "string" ||
-    !p.data.task_id ||
-    p.data.task_id.length > 1000
-  )
-    throw new AppError(
-      "SUBMISSION_UNKNOWN",
-      "The provider did not return a usable task ID. Do not submit again automatically.",
-      502,
-    );
-  const createdAt = new Date().toISOString();
-  const token = sign({
-    type: "run",
-    sid: owner.sid,
-    taskId: p.data.task_id,
-    itemDigest: contentDigest,
-    referenceDigest: referenceMeta.digest,
-    shopperDigest: hash(sourceBytes),
-    createdAt,
-    exp: Date.now() + 2 * 60 * 60 * 1000,
-  });
+  const reservation = await reserveRun(
+    request,
+    owner.sid,
+    intent,
+    [
+      contentDigest,
+      referenceMeta.digest,
+      hash(sourceBytes),
+      DISCLOSURE_VERSION,
+    ].join(":"),
+  );
+  if (reservation.existing)
+    return json({ ...reservation.existing, recovered: true });
+  let submitted = false;
+  try {
+    await authorizeBudget();
+    const sourceId = await upload(sourceBytes, "shopper");
+    const referenceId = await upload(referenceBytes, "garment");
+    submitted = true;
+    const p = await api(TASK, "POST", {
+      src_file_id: sourceId,
+      ref_file_id: referenceId,
+      garment_category: "upper_body",
+      change_shoes: false,
+    });
+    if (
+      typeof p.data?.task_id !== "string" ||
+      !p.data.task_id ||
+      p.data.task_id.length > 1000
+    )
+      throw new AppError(
+        "SUBMISSION_UNKNOWN",
+        "The provider did not return a usable task ID. Do not submit again automatically.",
+        502,
+      );
+    const createdAt = new Date().toISOString();
+    const token = sign({
+      type: "run",
+      sid: owner.sid,
+      taskId: p.data.task_id,
+      itemDigest: contentDigest,
+      referenceDigest: referenceMeta.digest,
+      shopperDigest: hash(sourceBytes),
+      createdAt,
+      exp: Date.now() + 2 * 60 * 60 * 1000,
+    });
+    const response = {
+      state: "running" as const,
+      token,
+      createdAt,
+      shopperDigest: hash(sourceBytes),
+      referenceDigest: referenceMeta.digest,
+      itemDigest: contentDigest,
+    };
+    try {
+      await finishRun(reservation.key, reservation.entry, "running", response);
+    } catch {
+      console.error(
+        JSON.stringify({
+          event: "run-ledger-save-failed",
+          code: "KNOWN_TASK_RETURNED",
+        }),
+      );
+    }
+    return json(response);
+  } catch (error) {
+    const knownRejected =
+      error instanceof AppError &&
+      /^PROVIDER_(400|401|403|422|429)$/.test(error.code);
+    try {
+      await finishRun(
+        reservation.key,
+        reservation.entry,
+        submitted && !knownRejected ? "unknown" : "stopped",
+      );
+    } catch {
+      /* The existing reservation still prevents another creation. */
+    }
+    throw error;
+  }
+}
+export async function previewRecovery(request: Request): Promise<Response> {
+  sameOrigin(request);
+  const owner = session(request);
+  const input = z
+    .object({ intent: intentSchema })
+    .strict()
+    .parse(await readJson(request, 300));
   return json({
-    state: "running",
-    token,
-    createdAt,
-    shopperDigest: hash(sourceBytes),
-    referenceDigest: referenceMeta.digest,
-    itemDigest: contentDigest,
+    ...(await recoverRun(owner.sid, input.intent)),
+    recovered: true,
   });
 }
 export async function runClaims(request: Request): Promise<Claims> {

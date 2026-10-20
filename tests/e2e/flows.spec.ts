@@ -208,7 +208,7 @@ test("desktop and mobile core screens have no serious/critical automated accessi
     await page.setViewportSize(viewport);
     await page.goto("/");
     await expect(
-      page.getByRole("heading", { name: /The look changes/ }),
+      page.getByRole("heading", { name: /Worth a second look/ }),
     ).toBeVisible();
     expect(
       await page.evaluate(
@@ -243,4 +243,95 @@ test("desktop and mobile core screens have no serious/critical automated accessi
       ),
     ).toEqual([]);
   }
+});
+
+test("interactive lenses, source inspector, question brief and revision diff work without generation", async ({
+  page,
+}) => {
+  let generations = 0;
+  page.on("request", (r) => {
+    if (r.url().endsWith("/api/preview") && r.method() === "POST")
+      generations++;
+  });
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Focus on the declared cuff detail" })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Look a little closer." }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Explore the completed example" })
+    .click();
+  await page
+    .getByRole("button", { name: "Inspect the linked source view" })
+    .click();
+  const inspector = page.getByRole("dialog", { name: "The closer look." });
+  await expect(inspector).toBeVisible();
+  await inspector.getByRole("button", { name: "Zoom in source" }).click();
+  await expect(inspector.getByText("150%", { exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(inspector).not.toBeVisible();
+  await page.getByRole("radio", { name: "Ask seller", exact: true }).check();
+  await page
+    .getByRole("button", { name: "Prepare questions for the seller" })
+    .click();
+  await expect(page.getByLabel("Seller question draft")).toHaveValue(/cuff/i);
+  await expect(
+    page.getByRole("heading", { name: "A conversation comes next." }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Edit record", exact: true }).click();
+  await page
+    .getByLabel("Seller description")
+    .fill("Updated disclosure for this review.");
+  await page.getByRole("button", { name: "Save new revision" }).click();
+  await expect(
+    page.getByText("Seller description changed.", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("radio", { name: "Not reviewed", exact: true }),
+  ).toBeChecked();
+  expect(generations).toBe(0);
+});
+
+test("mobile source dialog, seller editor and privacy screens remain accessible", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  async function check() {
+    const result = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+      .analyze();
+    expect(
+      result.violations.filter((v) =>
+        ["critical", "serious"].includes(v.impact || ""),
+      ),
+    ).toEqual([]);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  }
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Explore the completed example" })
+    .click();
+  await page
+    .getByRole("button", { name: "Inspect the linked source view" })
+    .click();
+  await expect(
+    page.getByRole("dialog", { name: "The closer look." }),
+  ).toBeVisible();
+  await check();
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("button", { name: "Inspect the linked source view" }),
+  ).toBeFocused();
+  await page.getByRole("button", { name: "Edit record", exact: true }).click();
+  await check();
+  await page
+    .getByRole("button", { name: "Privacy & limits", exact: true })
+    .click();
+  await check();
 });

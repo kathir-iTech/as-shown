@@ -12,6 +12,7 @@ import {
 } from "@/domain/model";
 import { readAsset } from "@/domain/browser";
 import { Photo } from "./photo";
+import { SourceRegionEditor } from "./source-region-editor";
 
 type IssueDraft = {
   id: string;
@@ -19,6 +20,8 @@ type IssueDraft = {
   sourceRole: "front" | "back";
   asset?: Asset;
   bytes?: Uint8Array;
+  region?: Flaw["region"];
+  additional?: { asset: Asset; bytes: Uint8Array }[];
 };
 export function Editor({
   existing,
@@ -53,6 +56,11 @@ export function Editor({
             : "front",
         asset: a,
         bytes: a ? existing.assets[a.id] : undefined,
+        region: f.region,
+        additional: f.closeupAssetIds.slice(1).map((id) => ({
+          asset: existing.item.assets.find((asset) => asset.id === id)!,
+          bytes: existing.assets[id],
+        })),
       };
     }) || [],
   );
@@ -68,6 +76,12 @@ export function Editor({
         result.asset,
       ]);
       setData((current) => ({ ...current, [result.asset.id]: result.bytes }));
+      if (role === "front" || role === "back")
+        setIssues((current) =>
+          current.map((issue) =>
+            issue.sourceRole === role ? { ...issue, region: undefined } : issue,
+          ),
+        );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Photo could not be read.");
     } finally {
@@ -119,11 +133,20 @@ export function Editor({
             );
           all.push(issue.asset);
           bytes[issue.asset.id] = issue.bytes;
+          for (const extra of issue.additional || []) {
+            if (!all.some((asset) => asset.id === extra.asset.id))
+              all.push(extra.asset);
+            bytes[extra.asset.id] = extra.bytes;
+          }
           flaws.push({
             id: issue.id,
             description: issue.description,
             sourceAssetId: assets.find((a) => a.role === issue.sourceRole)!.id,
-            closeupAssetIds: [issue.asset.id],
+            closeupAssetIds: [
+              issue.asset.id,
+              ...(issue.additional || []).map((extra) => extra.asset.id),
+            ],
+            ...(issue.region ? { region: issue.region } : {}),
           });
         }
       const item = await sealItem({
@@ -316,6 +339,7 @@ export function Editor({
                                     ...x,
                                     sourceRole: e.target.value as
                                       "front" | "back",
+                                    region: undefined,
                                   }
                                 : x,
                             ),
@@ -347,6 +371,29 @@ export function Editor({
                       className="editor-closeup"
                     />
                   )}
+                  {!!issue.additional?.length && (
+                    <p className="small">
+                      {issue.additional.length} additional imported close-up(s)
+                      will be preserved in this revision.
+                    </p>
+                  )}
+                  <SourceRegionEditor
+                    source={assets.find((a) => a.role === issue.sourceRole)}
+                    bytes={
+                      data[
+                        assets.find((a) => a.role === issue.sourceRole)?.id ||
+                          ""
+                      ]
+                    }
+                    region={issue.region}
+                    onChange={(region) =>
+                      setIssues((current) =>
+                        current.map((entry, i) =>
+                          i === index ? { ...entry, region } : entry,
+                        ),
+                      )
+                    }
+                  />
                 </article>
               ))}
               <button

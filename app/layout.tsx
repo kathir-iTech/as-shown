@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import "@fontsource-variable/bricolage-grotesque";
+import "@fontsource-variable/manrope";
 import "./globals.css";
 export const metadata: Metadata = {
-  title: "AsShown — See the style. Keep the story.",
+  title: "AsShown — A secondhand inspection studio",
   description:
     "A secondhand garment’s original condition photos, a real YouCam style preview, and a portable record of your decision.",
 };
