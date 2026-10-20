@@ -8,6 +8,8 @@ This is a limited-credit, non-commercial hackathon prototype—not a marketplace
 
 ## Try the product
 
+Website: [asshown.vercel.app](https://asshown.vercel.app) · [Source repository](https://github.com/kathir-iTech/asshown)
+
 - Explore the completed example without supplying a photograph or API credential.
 - Create a seller record with a reference, front/back views and an explicit condition declaration. Every declared issue needs a linked close-up.
 - Export a seller-only item package and open it in another browser context.
