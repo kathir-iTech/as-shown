@@ -121,18 +121,16 @@ it("persists an outcome with compare-and-set rather than overwriting a different
   expect(spy).toHaveBeenCalledTimes(1);
 });
 it("recovery only reads a session-bound request", async () => {
-  const spy = vi
-    .spyOn(globalThis, "fetch")
-    .mockResolvedValue(
-      Response.json({
-        result: JSON.stringify({
-          state: "running",
-          fingerprint: "a".repeat(64),
-          createdAt: Date.now(),
-          response,
-        }),
+  const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    Response.json({
+      result: JSON.stringify({
+        state: "running",
+        fingerprint: "a".repeat(64),
+        createdAt: Date.now(),
+        response,
       }),
-    );
+    }),
+  );
   expect(await recoverRun(sid, intent)).toEqual(response);
   expect(JSON.parse(String(spy.mock.calls[0][1]?.body))[0]).toBe("GET");
 });

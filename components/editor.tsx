@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowLeft, Plus, Trash2, ArrowRight, Upload } from "lucide-react";
 import {
   type Asset,
@@ -65,12 +65,26 @@ export function Editor({
     }) || [],
   );
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const pendingOperations = useRef(0);
+  const readVersions = useRef<Record<string, string>>({});
+  const [pendingCount, setPendingCount] = useState(0);
+  const busy = pendingCount > 0;
+  function beginWork() {
+    pendingOperations.current++;
+    setPendingCount(pendingOperations.current);
+  }
+  function endWork() {
+    pendingOperations.current--;
+    setPendingCount(pendingOperations.current);
+  }
   async function photo(file: File, role: Asset["role"]) {
-    setBusy(true);
+    beginWork();
+    const version = crypto.randomUUID();
+    readVersions.current[role] = version;
     setError("");
     try {
       const result = await readAsset(file, role);
+      if (readVersions.current[role] !== version) return;
       setAssets((current) => [
         ...current.filter((a) => a.role !== role),
         result.asset,
@@ -83,32 +97,43 @@ export function Editor({
           ),
         );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Photo could not be read.");
+      if (readVersions.current[role] === version)
+        setError(e instanceof Error ? e.message : "Photo could not be read.");
     } finally {
-      setBusy(false);
+      endWork();
     }
   }
   async function closeup(file: File, index: number) {
-    setBusy(true);
+    const issueId = issues[index]?.id;
+    if (!issueId) return;
+    beginWork();
+    const version = crypto.randomUUID();
+    const readKey = `closeup:${issueId}`;
+    readVersions.current[readKey] = version;
     setError("");
     try {
       const result = await readAsset(file, "closeup");
+      if (readVersions.current[readKey] !== version) return;
       setIssues((current) =>
-        current.map((issue, i) =>
-          i === index
+        current.map((issue) =>
+          issue.id === issueId
             ? { ...issue, asset: result.asset, bytes: result.bytes }
             : issue,
         ),
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Close-up could not be read.");
+      if (readVersions.current[readKey] === version)
+        setError(
+          e instanceof Error ? e.message : "Close-up could not be read.",
+        );
     } finally {
-      setBusy(false);
+      endWork();
     }
   }
   async function submit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    setBusy(true);
+    if (pendingOperations.current > 0) return;
+    beginWork();
     setError("");
     try {
       if (!declaration)
@@ -165,7 +190,7 @@ export function Editor({
     } catch (e) {
       setError(e instanceof Error ? e.message : "Record validation failed.");
     } finally {
-      setBusy(false);
+      endWork();
     }
   }
   return (

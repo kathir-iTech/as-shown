@@ -110,6 +110,17 @@ test("recorded workflow, private export, separate-context seller import and offl
 test("seller creates a no-known-flaws item and a revision resets old review without spending units", async ({
   page,
 }) => {
+  // Deliberately overlap file decodes. A completed early read must not clear the
+  // busy state while another image is still being decoded.
+  await page.addInitScript(() => {
+    const decode = window.createImageBitmap.bind(window);
+    let calls = 0;
+    window.createImageBitmap = (async (...args: Parameters<typeof decode>) => {
+      const delay = ++calls === 1 ? 100 : 700;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return decode(...args);
+    }) as typeof window.createImageBitmap;
+  });
   await page.goto("/");
   await page
     .getByRole("button", { name: "Create a record", exact: true })
