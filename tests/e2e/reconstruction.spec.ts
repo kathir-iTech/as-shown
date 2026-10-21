@@ -93,14 +93,14 @@ test("a fast completed preview remains recoverable after refresh without a secon
   expect(checks).toBeGreaterThanOrEqual(2);
 });
 
-test("new scenarios have real recorded outputs, stable routes and standalone offline HTML", async ({
-  page,
-  browser,
-}, info) => {
-  for (const [slug, title] of [
-    ["navy-knit", "The navy cable knit"],
-    ["ivory-shirt", "The ivory silk shirt"],
-  ]) {
+for (const [slug, title] of [
+  ["navy-knit", "The navy cable knit"],
+  ["ivory-shirt", "The ivory silk shirt"],
+]) {
+  test(`recorded scenario ${slug}: stable route and standalone offline HTML`, async ({
+    page,
+    browser,
+  }, info) => {
     await page.goto("/examples/" + slug);
     await expect(
       page.getByRole("heading", { name: title, exact: true }),
@@ -143,8 +143,8 @@ test("new scenarios have real recorded outputs, stable routes and standalone off
         ),
     ).toBe(true);
     await offline.close();
-  }
-});
+  });
+}
 
 test("editing drafts survive refresh and four linked close-ups retain order with source-region reconfirmation", async ({
   page,

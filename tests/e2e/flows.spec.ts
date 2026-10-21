@@ -345,9 +345,15 @@ test("mobile source dialog, seller editor and privacy screens remain accessible"
     page.getByRole("button", { name: "Inspect the linked source view" }),
   ).toBeFocused();
   await page.getByRole("button", { name: "Edit record", exact: true }).click();
+  await expect(page).toHaveURL(/\/seller\//);
+  await expect(page.getByLabel("Seller description")).toBeEditable();
   await check();
   await page
     .getByRole("link", { name: "Privacy & limits", exact: true })
     .click();
+  await expect(page).toHaveURL(/\/privacy$/);
+  await expect(
+    page.getByRole("heading", { name: /A clear view/ }),
+  ).toBeVisible();
   await check();
 });

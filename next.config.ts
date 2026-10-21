@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 const config: NextConfig = {
   poweredByHeader: false,
+  // This studio has static metadata. Send it with the route rather than a
+  // deferred stream, avoiding an empty document title during navigation.
+  htmlLimitedBots: /.*/,
   serverExternalPackages: ["sharp"],
   async headers() {
     return [
