@@ -15,16 +15,16 @@ export function PrivacyPage({ onHome }: { onHome: () => void }) {
         <h2>What stays on your device</h2>
         <p>
           Seller records, condition close-ups and buyer notes are processed in
-          your browser. Source drafts are saved in IndexedDB only when you
-          choose to save, or when a live preview needs a recoverable record. The
-          personal input photo stays in memory. Completed previews are not
-          stored in source drafts. Seller-only exports exclude buyer notes and
-          generated personal images.
+          your browser. Seller drafts and opened inspection records are saved
+          locally in IndexedDB as you work. The personal input photo stays in
+          memory. Completed previews are not stored in source drafts.
+          Seller-only exports exclude buyer notes and generated personal images.
         </p>
         <p>
           There is no AsShown user account, checkout, advertising tracker or
-          cloud photo library. This does not mean the host or provider has no
-          operational logs.
+          automatic cloud photo library. Publishing a seller-only link is a
+          separate explicit action. This does not mean the host or provider has
+          no operational logs.
         </p>
       </section>
       <section>
@@ -66,10 +66,11 @@ export function PrivacyPage({ onHome }: { onHome: () => void }) {
         </p>
         <p>
           The ledger admits the same request intent only once during its
-          retention window and conservatively reserves units even if a request
-          fails. Recovery tokens last two hours. If the provider accepted a task
-          but its response was lost, the app stops rather than silently creating
-          another task; this is not an exactly-once guarantee across independent
+          retention window. A failure confirmed before task submission releases
+          its internal allowance once; uncertain submissions retain it. Recovery
+          tokens last two hours. If the provider accepted a task but its
+          response was lost, the app stops rather than silently creating another
+          task; this is not an exactly-once guarantee across independent
           systems.
         </p>
         <p>
@@ -77,6 +78,25 @@ export function PrivacyPage({ onHome }: { onHome: () => void }) {
           generation. There is no paid fallback. Provider outages and
           free-service limits can still interrupt a preview. A completed offline
           package remains usable.
+        </p>
+      </section>
+      <section>
+        <h2>Optional seller links</h2>
+        <p>
+          With publication permission, a seller-only archive passes through our
+          server to create a separate revision with orientation applied and
+          metadata removed from its photo copies. The copy is stored in private
+          Vercel Blob storage. Buyer notes, choices and personal try-on images
+          are excluded. Original local files are unchanged.
+        </p>
+        <p>
+          Anyone possessing the full inspection link can access and download
+          that copy until its 24-hour expiry or revocation. Access tokens are in
+          the URL fragment and are sent separately when opening a record. Keep
+          the revocation link private. Link revocation cannot delete recipients’
+          downloads. Daily cleanup removes expired stored copies; operational
+          publication metadata expires after 48 hours. Free-service quotas may
+          pause publication or access.
         </p>
       </section>
       <section>
@@ -119,8 +139,9 @@ export function PrivacyPage({ onHome }: { onHome: () => void }) {
           controlled synthetic condition images. Its recorded preview is an
           actual YouCam result. It does not demonstrate automatic defect
           detection or prove that the provider erased a defect. Initial
-          feasibility used two synthetic shopper framings and one shirt; this is
-          not a real-user accuracy or usefulness study.
+          feasibility used two synthetic shopper framings and one shirt. The
+          reconstructed collection adds a navy knit and ivory shirt with actual
+          YouCam outputs. This is not a real-user accuracy or usefulness study.
         </p>
         <p>
           This is a free, limited-credit hackathon prototype for upper-body

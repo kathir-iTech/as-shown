@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import {
   type Bundle,
-  type Asset,
   type Decision,
   type Preview,
   type Flaw,
@@ -35,7 +34,10 @@ import {
   saveDraft,
   download,
 } from "@/domain/browser";
-import { exportPackage } from "@/packages/archive";
+import { savePackage, saveHtml } from "@/domain/archive-client";
+import { prepareReference } from "@/domain/browser";
+import { ComparisonStage } from "./comparison-stage";
+import { SellerPublisher } from "./seller-publisher";
 import { Photo } from "./photo";
 import { DecisionDesk } from "./decision-desk";
 import { EvidenceInspector } from "./evidence-inspector";
@@ -81,7 +83,9 @@ export function Workspace({
 }) {
   const { item } = bundle;
   const reference = referenceOf(item);
-  const [view, setView] = useState(bundle.preview ? "preview" : "reference");
+  const [focused, setFocused] = useState<Flaw>();
+  const shopperRead = useRef(0);
+  const pendingKey = `pending:${item.itemId}:${item.contentDigest}`;
   const [consentOpen, setConsentOpen] = useState(openLive);
   const [shopper, setShopper] = useState<Uint8Array>();
   const [consent, setConsent] = useState(false);
@@ -93,18 +97,11 @@ export function Workspace({
   const [saving, setSaving] = useState(false);
   const [inspected, setInspected] = useState<Flaw>();
   const lock = useRef(false);
-  const [zoom, setZoom] = useState<{
-    bytes: Uint8Array;
-    mime: string;
-    title: string;
-  }>();
-  const dialog = useRef<HTMLDialogElement>(null);
   const active = stage === "uploading" || stage === "running";
+
   useEffect(() => {
-    if (bundle.preview && bundle.result) setView("preview");
-  }, [!!bundle.preview, bundle.preview?.resultDigest]);
-  useEffect(() => {
-    void getLocal<Pending>("pending")
+    void getLocal<Pending>(pendingKey)
+      .then(async (p) => p || (await getLocal<Pending>("pending")))
       .then((p) => {
         if (p?.itemDigest === item.contentDigest) {
           setPending(p);
@@ -112,15 +109,13 @@ export function Workspace({
           setMessage(
             p.token
               ? "A known task can be resumed without creating another preview."
-              : "An earlier submission has no confirmed task token. Do not submit again; the operator must check provider history.",
+              : "An earlier submission has no confirmed task token. Check this request again; you can continue inspecting and saving.",
           );
         }
       })
       .catch(() => {});
-  }, [item.contentDigest]);
-  useEffect(() => {
-    if (zoom) dialog.current?.showModal();
-  }, [zoom]);
+  }, [item.contentDigest, pendingKey]);
+
   useEffect(() => {
     if (stage !== "running" || !pending?.token) return;
     let cancelled = false;
@@ -147,7 +142,7 @@ export function Workspace({
         if (state.state === "error") {
           setStage("error");
           setMessage(state.message);
-          await putLocal("pending", undefined);
+          await putLocal(pendingKey, undefined);
           return;
         }
         if (state.state === "success") {
@@ -180,7 +175,6 @@ export function Workspace({
           await verifyBundle(next);
           if (cancelled) return;
           onChange(next);
-          setView("preview");
           setStage("complete");
           setConsentOpen(false);
           setShopper(undefined);
@@ -188,7 +182,7 @@ export function Workspace({
           setMessage(
             "Your real YouCam result is ready. Review original condition evidence beside it.",
           );
-          await putLocal("pending", undefined);
+          await putLocal(pendingKey, undefined);
           return;
         }
         if (++count >= 18) {
@@ -218,15 +212,21 @@ export function Workspace({
   }, [stage, pending?.token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function selectShopper(file: File) {
+    const version = ++shopperRead.current;
+    setShopper(undefined);
     setPreparing(true);
     setMessage("");
     setConsent(false);
     try {
-      setShopper(await prepareShopper(file));
+      const prepared = await prepareShopper(file);
+      if (version === shopperRead.current) setShopper(prepared);
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "Photo preparation failed.");
+      if (version === shopperRead.current)
+        setMessage(
+          e instanceof Error ? e.message : "Photo preparation failed.",
+        );
     } finally {
-      setPreparing(false);
+      if (version === shopperRead.current) setPreparing(false);
     }
   }
   async function start() {
@@ -260,7 +260,7 @@ export function Workspace({
       }
       // A local intent survives a refresh. Never persist the personal input photo.
       await saveDraft(bundle);
-      await putLocal("pending", intent);
+      await putLocal(pendingKey, intent);
       setPending(intent);
       const form = new FormData();
       form.set("item", JSON.stringify(previewAdmission(item)));
@@ -297,10 +297,10 @@ export function Workspace({
         if (result.code === "SUBMISSION_UNKNOWN") {
           setStage("unknown");
           setMessage(result.message);
-          await putLocal("pending", { ...intent, stage: "unknown" });
+          await putLocal(pendingKey, { ...intent, stage: "unknown" });
           return;
         }
-        await putLocal("pending", undefined);
+        await putLocal(pendingKey, undefined);
         sent = false;
         throw new Error(result.message || "Preview could not be created.");
       }
@@ -310,7 +310,7 @@ export function Workspace({
         token: result.token,
         createdAt: result.createdAt,
       };
-      await putLocal("pending", next);
+      await putLocal(pendingKey, next);
       setPending(next);
       setStage("running");
       setMessage(
@@ -320,7 +320,7 @@ export function Workspace({
       setStage(sent ? "unknown" : "error");
       setMessage(
         sent
-          ? "The submission outcome is unknown. Do not submit another task; the operator must check provider history."
+          ? "The submission outcome is unknown. Check this request again; inspection and saving remain available."
           : e instanceof Error
             ? e.message
             : "Preview could not start.",
@@ -329,17 +329,25 @@ export function Workspace({
       lock.current = false;
     }
   }
-  async function save(kind: "item" | "decision") {
+  async function save(kind: "item" | "decision", html = false) {
     setSaving(true);
     try {
       if (kind === "decision" && !exportConsent)
         throw new Error(
           "Confirm the private-image warning before downloading a decision package.",
         );
-      const bytes = await exportPackage(bundle, kind);
-      download(bytes, `asshown-${kind}-r${item.revision}.zip`);
+      const bytes = html
+        ? await saveHtml(bundle, kind)
+        : await savePackage(bundle, kind);
+      download(
+        bytes,
+        `asshown-${kind}-r${item.revision}.${html ? "html" : "zip"}`,
+        html ? "text/html;charset=utf-8" : "application/zip",
+      );
       onNotice(
-        `${kind === "item" ? "Seller item" : "Private decision"} package downloaded. Extract it and open viewer.html offline.`,
+        html
+          ? "Saved record downloaded. Open the HTML file to read its embedded photographs offline."
+          : `${kind === "item" ? "Seller item" : "Private decision"} archive downloaded. You can import it directly here or extract it for the offline viewer.`,
       );
     } catch (e) {
       onNotice(e instanceof Error ? e.message : "Package could not be saved.");
@@ -367,7 +375,7 @@ export function Workspace({
         stage: "running",
         createdAt: data.createdAt,
       };
-      await putLocal("pending", next);
+      await putLocal(pendingKey, next);
       setPending(next);
       setStage("running");
       setMessage(
@@ -392,14 +400,6 @@ export function Workspace({
       },
     });
   }
-  function enlarge(asset: Asset) {
-    setZoom({
-      bytes: bundle.assets[asset.id],
-      mime: asset.mime,
-      title: asset.description,
-    });
-  }
-  const selected = item.assets.find((a) => a.role === view) || reference;
   const reviewed = item.flaws.filter(
     (f) => bundle.review.decisions[f.id] !== "unreviewed",
   ).length;
@@ -434,9 +434,10 @@ export function Workspace({
         <div className="demo-note">
           <Info size={17} />
           <span>
-            Controlled demo: fictional garment, synthetic shopper and condition
-            examples. The recorded preview is an actual YouCam API result—not a
-            real listing or a defect-erasure test.
+            Demonstration item and photographs are synthetic.{" "}
+            {bundle.preview
+              ? "The style preview is an actual YouCam result."
+              : "No style preview has been generated for this record."}
           </span>
         </div>
       )}
@@ -460,77 +461,39 @@ export function Workspace({
       </div>
       <div className="review-layout">
         <div className="visual-column">
-          <div className="view-header">
-            <span className="eyebrow">
-              {view === "preview" ? "THE STYLE PREVIEW" : "THE SOURCE RECORD"}
-            </span>
-            <span className="pill">
-              {view === "preview"
-                ? bundle.preview?.mode === "live"
-                  ? "Live YouCam result"
-                  : "Recorded YouCam example"
-                : "Original source bytes"}
-            </span>
-          </div>
-          <div className="main-photo">
-            {view === "preview" && bundle.result ? (
-              <Photo
-                bytes={bundle.result}
-                mime={bundle.preview?.mime}
-                alt="YouCam-generated style preview, not evidence of fit or garment condition"
-                onClick={() =>
-                  setZoom({
-                    bytes: bundle.result!,
-                    mime: bundle.preview!.mime,
-                    title: "Generated style preview — not condition evidence",
-                  })
-                }
-              />
-            ) : (
-              <Photo
-                bytes={bundle.assets[selected.id]}
-                mime={selected.mime}
-                alt={selected.description}
-                onClick={() => enlarge(selected)}
-              />
-            )}
-            <span className="zoom-hint">
-              <Expand size={13} /> Click to inspect
-            </span>
-          </div>
-          <div
-            className="view-tabs"
-            aria-label="Choose source or generated view"
-          >
-            {bundle.preview && (
+          <ComparisonStage
+            bundle={bundle}
+            activeFlaw={focused}
+            onInspect={setFocused}
+            onPreview={() => setConsentOpen(true)}
+          />
+          {(reference.byteLength > 1_200_000 ||
+            reference.width > 4096 ||
+            reference.height > 4096) && (
+            <div className="status-box">
+              <p>
+                This imported reference needs a smaller preview copy. Its
+                original evidence will be retained in a new revision.
+              </p>
               <button
-                aria-pressed={view === "preview"}
-                className={view === "preview" ? "selected" : ""}
-                onClick={() => setView("preview")}
+                className="button secondary"
+                onClick={async () => {
+                  try {
+                    onChange(await prepareReference(bundle));
+                    onNotice(
+                      "Preview input prepared locally. Review this new revision before approving generation.",
+                    );
+                  } catch (e) {
+                    onNotice(
+                      e instanceof Error ? e.message : "Preparation failed.",
+                    );
+                  }
+                }}
               >
-                Style preview
+                Prepare this record for YouCam
               </button>
-            )}
-            {(["reference", "front", "back"] as const).map((role) => (
-              <button
-                key={role}
-                aria-pressed={view === role}
-                className={view === role ? "selected" : ""}
-                onClick={() => setView(role)}
-              >
-                {role === "reference"
-                  ? "Reference"
-                  : role === "front"
-                    ? "Front"
-                    : "Back"}
-              </button>
-            ))}
-          </div>
-          <p className="caption">
-            {view === "preview"
-              ? "A generated suggestion of style. Sleeves, drape, details and proportions may change. Always inspect the source photos."
-              : "Seller-supplied source evidence. Its presence and file integrity do not prove the seller’s claims."}
-          </p>
+            </div>
+          )}
           {!consentOpen && (
             <button
               className="button primary wide"
@@ -732,15 +695,6 @@ export function Workspace({
               >
                 Inspect the linked source view <Expand size={14} />
               </button>
-              {flaw.region && (
-                <p className="small">
-                  Declared source region: {Math.round(flaw.region.x * 100)}%
-                  from left, {Math.round(flaw.region.y * 100)}% from top;{" "}
-                  {Math.round(flaw.region.width * 100)}% ×{" "}
-                  {Math.round(flaw.region.height * 100)}%. This is not a marker
-                  on the generated image.
-                </p>
-              )}
               <fieldset className="decision-options" disabled={active}>
                 <legend>Your preference—not a condition verdict</legend>
                 {choices.map(([value, label]) => (
@@ -790,6 +744,7 @@ export function Workspace({
         </aside>
       </div>
       <DecisionDesk bundle={bundle} />
+      <SellerPublisher bundle={bundle} />
       <EvidenceInspector
         bundle={bundle}
         flaw={inspected}
@@ -800,8 +755,8 @@ export function Workspace({
           <span className="eyebrow">TAKE THE WHOLE RECORD WITH YOU</span>
           <h2>A decision you can reopen.</h2>
           <p>
-            Actual photos, the item revision, your notes and the generated
-            image. Not an expiring preview link.
+            Your source photographs, the exact revision and your decisions. When
+            you generated a preview, its actual image is included.
           </p>
           <label className="check-label">
             <input
@@ -818,11 +773,19 @@ export function Workspace({
         <div className="save-actions">
           <button
             className="button primary"
-            disabled={saving || active || !bundle.preview || !exportConsent}
+            disabled={saving || active || !exportConsent}
             onClick={() => void save("decision")}
           >
             <Download size={17} />
             Download private decision
+          </button>
+          <button
+            className="button secondary"
+            disabled={saving || active || !exportConsent}
+            onClick={() => void save("decision", true)}
+          >
+            <Download size={17} />
+            Save readable record (HTML)
           </button>
           <button
             className="button secondary"
@@ -851,31 +814,11 @@ export function Workspace({
             Save source draft on this device
           </button>
           <p className="small">
-            Extract the ZIP and open viewer.html offline. Use the verifier to
-            check file agreement—not authenticity.
+            Open the HTML download directly, or keep the ZIP for verified import
+            and the full archival record.
           </p>
         </div>
       </section>
-      <dialog
-        ref={dialog}
-        className="photo-dialog"
-        onClose={() => setZoom(undefined)}
-      >
-        <div className="section-line">
-          <h2>{zoom?.title}</h2>
-          <button
-            className="icon-button"
-            aria-label="Close enlarged photo"
-            onClick={() => dialog.current?.close()}
-          >
-            <X />
-          </button>
-        </div>
-        {zoom && <Photo bytes={zoom.bytes} mime={zoom.mime} alt={zoom.title} />}
-        <p>
-          Original saved pixels. Zoom with your browser for closer inspection.
-        </p>
-      </dialog>
     </section>
   );
 }

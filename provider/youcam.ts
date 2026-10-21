@@ -215,14 +215,19 @@ export function verify(token: string, type: Claims["type"]): Claims {
     );
   return claims;
 }
-export const cookieName = "asshown-session";
+export const cookieName = "__Host-asshown-session";
+function requestCookieName(request: Request) {
+  return new URL(request.url).protocol === "https:"
+    ? cookieName
+    : "asshown-session";
+}
 export function session(request: Request): Claims {
   const token = request.headers
     .get("cookie")
     ?.split(";")
     .map((s) => s.trim())
-    .find((s) => s.startsWith(cookieName + "="))
-    ?.slice(cookieName.length + 1);
+    .find((s) => s.startsWith(requestCookieName(request) + "="))
+    ?.slice(requestCookieName(request).length + 1);
   if (!token)
     throw new AppError(
       "SESSION_REQUIRED",
@@ -248,7 +253,7 @@ export function sessionResponse(request: Request): Response {
   const response = json({ ready: true });
   response.headers.set(
     "Set-Cookie",
-    `${cookieName}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=7200${new URL(request.url).protocol === "https:" ? "; Secure" : ""}`,
+    `${requestCookieName(request)}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=7200${new URL(request.url).protocol === "https:" ? "; Secure" : ""}`,
   );
   return response;
 }
@@ -298,7 +303,7 @@ async function api(path: string, method = "GET", body?: unknown): Promise<any> {
         ? "SUBMISSION_UNKNOWN"
         : "PROVIDER_UNREACHABLE",
       method === "POST" && path === TASK
-        ? "The submission outcome is unknown. Do not create another task; check provider task history."
+        ? "We could not confirm whether your preview started. Check this request again; your inspection record is still available."
         : "YouCam could not be reached. A known task can be checked again without recreating it.",
       502,
     );
@@ -311,7 +316,7 @@ async function api(path: string, method = "GET", body?: unknown): Promise<any> {
     )
       throw new AppError(
         "SUBMISSION_UNKNOWN",
-        "The provider did not confirm whether the task was created. Do not submit another task; check provider history.",
+        "We could not confirm whether your preview started. Check this request again before starting another preview.",
         502,
       );
     throw new AppError(
@@ -529,7 +534,17 @@ async function decodedInput(bytes: Uint8Array): Promise<void> {
       "Each live-preview image must be below 1.2 MB.",
       413,
     );
-  imageDimensions(bytes);
+  const dimensions = imageDimensions(bytes);
+  if (
+    dimensions.width > 4096 ||
+    dimensions.height > 4096 ||
+    dimensions.width < 128 ||
+    dimensions.height < 128
+  )
+    throw new AppError(
+      "INPUT_DIMENSIONS",
+      "Prepared preview images must be between 128 and 4096 pixels per side.",
+    );
   const info = await sharp(bytes, {
     limitInputPixels: 4096 * 4096,
     failOn: "warning",
@@ -563,7 +578,9 @@ export async function createPreview(request: Request): Promise<Response> {
   // This does not independently verify the withheld evidence, its truthfulness, or the supplied item digest.
   const item = admissionSchema.parse(JSON.parse(String(form.get("item"))));
   const contentDigest = item.contentDigest;
-  const referenceMeta = item.assets.find((a) => a.role === "reference")!;
+  const referenceMeta =
+    item.assets.find((a) => a.role === "preview-reference") ||
+    item.assets.find((a) => a.role === "reference")!;
   const consent = z
     .object({
       affirmative: z.literal(true),
@@ -601,6 +618,7 @@ export async function createPreview(request: Request): Promise<Response> {
       hash(sourceBytes),
       DISCLOSURE_VERSION,
     ].join(":"),
+    configured(),
   );
   if (reservation.existing)
     return json({ ...reservation.existing, recovered: true });
@@ -665,10 +683,18 @@ export async function createPreview(request: Request): Promise<Response> {
         reservation.key,
         reservation.entry,
         submitted && !knownRejected ? "unknown" : "stopped",
+        undefined,
+        !submitted,
       );
     } catch {
       /* The existing reservation still prevents another creation. */
     }
+    if (submitted && !knownRejected)
+      throw new AppError(
+        "SUBMISSION_UNKNOWN",
+        "We could not confirm whether your preview started. Check this request again; do not create another preview for this submission.",
+        502,
+      );
     throw error;
   }
 }

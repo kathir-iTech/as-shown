@@ -20,7 +20,7 @@ export function EvidenceInspector({
       setScale(1);
       dialog.current?.showModal();
     } else dialog.current?.close();
-  }, [flaw?.id]);
+  }, [flaw]);
   const source = bundle.item.assets.find((a) => a.id === flaw?.sourceAssetId);
   return (
     <dialog

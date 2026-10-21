@@ -2,7 +2,7 @@
 
 ## One coherent workflow
 
-Seller editor → versioned item and source bytes → seller-only ZIP → buyer import → optional consented YouCam style preview → original-evidence review → private decision ZIP and offline viewer.
+Seller editor → versioned item and source bytes → seller-only ZIP or optional expiring seller link → buyer import → optional consented YouCam style preview beside original evidence → condition review → private ZIP or standalone offline HTML.
 
 The record digest covers canonical JSON and referenced image digests. Changes create a revision and a fresh buyer review. If the reference image is unchanged, a buyer may deliberately reuse the prior style image; its original creation time and mode remain, with a previous-item digest attached. No new units are spent merely for a condition-note change.
 
@@ -20,7 +20,9 @@ The record digest covers canonical JSON and referenced image digests. Changes cr
 | Recovery token                                                   | Explicitly explained IndexedDB recovery | Validated against signed cookie                               | Task ID used server-side                       |
 | API credential                                                   | Never                                   | Environment only                                              | Authentication only                            |
 
-The provider policy is external to the app. Retention, USA storage, biometric implications and exceptions are disclosed before transmission. Never equate clearing browser storage with deleting provider-held data. EXIF is removed from the prepared personal JPEG; seller source bytes remain unchanged and may contain metadata. Warn sellers to remove sensitive metadata themselves before choosing source files if appropriate.
+The table describes local/preview processing. Explicit optional publication additionally sends the seller record (including descriptions, regions and source photographs) to AsShown's server and private Blob storage. It NEVER publishes the private preview, buyer decisions or notes. Sharp creates new orientation-corrected, metadata-free JPEGs in a separate revision; local originals remain unchanged. A link recipient can download this copy, so revocation cannot recall earlier downloads. Publication consent is separate from preview consent.
+
+The provider policy is external to the app. Retention, USA storage, biometric implications and exceptions are disclosed before transmission. Never equate clearing browser storage with deleting provider-held data. EXIF is removed from prepared live inputs. Local seller source bytes remain unchanged and may contain metadata; exported local packages retain it, unlike the explicit hosted publication copy.
 
 ## Provider flow
 
@@ -39,7 +41,7 @@ The server does not receive all condition evidence, so it cannot independently r
 
 Known task tokens and request intent IDs survive a refresh in IndexedDB. A recovery endpoint reads a session-bound ledger entry without submitting any provider task. Concurrent copies of one intent share one atomic reservation. The server stores the known signed task response with a compare-and-set operation; a later write cannot replace it.
 
-A missing/uncertain creation response is not permission to resubmit. If the provider accepted work but the response was lost, the entry remains reserved/unknown and the UI stops. Definite validation/authentication/rate-limit rejections are distinct from ambiguous server/network failures. This is **not** exactly-once execution across Redis and the independent provider. Reservations are conservative and never automatically refunded.
+A missing/uncertain creation response is not permission to resubmit. If the provider accepted work but the response was lost, the entry remains reserved/unknown and the UI stops. Only a confirmed failure BEFORE task submission releases the two-unit app reservation, using an atomic compare-and-set and decrement in the same Redis operation. Repeated completion cannot decrement twice. Submitted failures and ambiguous outcomes retain the reservation. This is **not** a provider-unit refund or exactly-once transaction across Redis and YouCam. Disabled generation is checked atomically after existing-intent lookup, allowing known replay without reserving new work.
 
 Tokens expire after two hours; saved local packages do not depend on the token or provider link. If a result was never saved before expiry, recovery is not guaranteed. Closing a browser does not guarantee cancellation of a running remote task.
 
@@ -47,15 +49,17 @@ Tokens expire after two hours; saved local packages do not depend on the token o
 
 `record.json`, `manifest.json`, `assets/<id>.jpg|png`, optional `preview.jpg|png`, and generated `viewer.html`. Item packages exclude buyer review and generated likeness. Decision packages include them only after the private-image warning.
 
-Imports are untrusted. Central-directory preflight rejects traversal, duplicate/unknown names, unsupported compression, encrypted/multi-volume/ZIP64 layouts and oversized declared expansion. Streaming decompression uses small pushes and an actual expanded-byte cap. Limits: 25 MB compressed, 60 MB expanded, 50 entries, source/result images up to 6 MB and 4096 px per side; stricter 1.2 MB applies per live input. The application ignores imported viewer HTML and regenerates its own script-free viewer on export. Notes are rendered as text.
+Imports are untrusted. Central-directory preflight rejects traversal, duplicate/unknown names, unsupported compression, encrypted/multi-volume/ZIP64 layouts and oversized declared expansion. Streaming decompression uses small pushes and an actual expanded-byte cap. Limits: 25 MB compressed, 60 MB expanded, 50 entries, source images up to 12 MB, 8192 px per side and 40 megapixels; stricter 1.2 MB applies per live input. Prepared browser inputs are capped at 2048 px; server input admission additionally decodes with Sharp. ZIP work happens in a dedicated browser worker with a timeout. Already-compressed photographs are stored without redundant deflation. The app ignores imported HTML and regenerates its own script-free viewer on export; standalone HTML embeds its images. Notes are rendered as text.
+
+Version 1 records remain importable. Version 2 optionally adds a `preview-reference` with its original reference's `sourceDigest`. The exact prepared reference is bound to generation/reuse. A change to this input invalidates prior preview reuse; description-only revisions may deliberately reuse it after fresh condition review.
 
 There is no signing authority or trusted timestamp. Checks establish internal agreement, not authorship, seller honesty, certification, absence of prior edits, or physical authenticity.
 
 ## Hosting and resource limits
 
-Node.js functions, a static frontend and a Free Upstash Redis operational ledger; no cloud photo library or persistent server filesystem. Request bodies are capped below 3 MB; downloaded results below 3 MB. API calls are short and separately bounded. A prepaid/free account with auto-refill off is a deployment prerequisite, not something this code can enforce against future account-owner billing changes.
+Node.js functions, dynamically rendered nonce-bearing pages, a Free Upstash Redis operational ledger and optional private Blob seller-copy storage; no personal-photo library or persistent server filesystem. Preview request bodies are capped below 3 MB; downloaded results below 3 MB. Publication archives are capped at 3.5 MB. API calls are short and separately bounded. A prepaid/free account with auto-refill off is a deployment prerequisite, not something code can enforce against future billing changes.
 
-The application lifetime allowance defaults to 800 units and cannot be configured higher. Lua atomically enforces this app-only allowance plus ten admissions per session/hour and twenty per network/hour. This is separate from the provider's active-balance check, which cannot reserve units against other apps or operator use. Failed/uncertain admissions still consume the conservative allowance; operators must reconcile before any intentional reset. Do not enable Redis eviction or automatic plan upgrades.
+The application lifetime allowance defaults to 800 units and cannot be configured higher. Lua atomically enforces this app-only allowance plus ten admissions per session/hour and twenty per network/hour. This is separate from the provider's active-balance check, which cannot reserve units against other apps or operator use. Submitted/uncertain admissions retain their conservative allowance; operators must reconcile before any intentional reset. Existing v3 aggregate keys are preserved. Do not enable Redis eviction or automatic plan upgrades.
 
 Request entries expire after 24 hours; signed tokens after two hours; hourly counter keys after two hours. Session/request/network IDs use keyed HMACs. The ledger contains digest commitments and signed task recovery information, not image bytes or notes. Its aggregate unit counter has no expiry and no individual request details. Network headers are trusted only on Vercel, where the platform overwrites forwarded IP headers. Local development uses session-scoped fallback.
 
@@ -63,7 +67,15 @@ Missing Redis configuration, unreadable ledger data, network errors or service l
 
 ## Interface and decision helpers
 
-The editorial studio exposes separate style, seller-source and close-up lenses. The source inspector zooms original bytes and displays seller-supplied regions only on source images. The decision brief and seller-question draft are deterministic transformations of buyer choices and notes, not another AI model. Revision comparison names changed fields, disclosures and evidence and resets buyer decisions; unchanged references may explicitly reuse a prior style result. Reduced-motion preferences disable spatial effects, and the core workflow does not require hover, animation or external fonts.
+The studio displays style and original source simultaneously (stacked on narrow screens), with source tabs, zoom, a keyboard-operable split control and linked detail selection. Seller regions are drawn, moved with arrow keys, resized with Shift + arrows, or entered numerically. Replacing their source resets the marker and requires reconfirmation. Each issue supports four replaceable/reorderable close-ups. Drafts autosave by exact base revision and restore after refresh. Buyer recovery is per item/revision rather than one global pending slot. Stable Next.js routes support reload/back/forward; device-only records honestly require import on a different device.
+
+The source inspector displays markers only on original images. Decision briefs and seller questions are deterministic helpers, not another AI model. Revision changes reset buyer decisions; unchanged prepared references may explicitly reuse a prior style result. Reduced motion and keyboard paths remain available. Runtime CSP uses a nonce plus strict-dynamic without unsafe-inline scripts, prohibits embedding, and allows only bounded same-origin API calls. No personal data is placed in OG images.
+
+## Optional hosted seller exchange
+
+An explicit seller-only publication is immutable, expires after 24 hours and is limited to 60 lifetime publications, 100 MB lifetime reserved storage and 250 MB admitted download transfer. These counters are conservative and are not reset by expiry/revocation. Per-hour limits are three publications/session and ten/network. Redis atomically reserves before Blob upload; concurrent/replayed intents do not create a second upload. An unconfirmed upload is not automatically retried. The optional service pauses at limits; offline/local records keep working.
+
+Read and revocation capabilities are distinct HMAC values in URL fragments, not query parameters. The API validates a same-origin POST and capability, then atomically checks expiry/revocation and transfer allowance before streaming a private Blob. Redis retains publication metadata for 48 hours, not image bytes. Revocation marks the record unavailable before deleting its file; deletion failures remain explicitly pending. A daily authenticated cleanup deletes copies older than 24 hours (physical retention may reach approximately 48 hours plus scheduling delay). The logical link stops at 24 hours regardless. No guaranteed permanent free service or exhaustive abuse defense is claimed.
 
 ## Verification limits
 

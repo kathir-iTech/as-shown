@@ -25,9 +25,17 @@ export type RunResponse = z.infer<typeof tokenResponseSchema>;
 const entrySchema = z
   .object({
     fingerprint: z.string().length(64),
-    state: z.enum(["reserved", "running", "stopped", "unknown"]),
+    state: z.enum([
+      "reserved",
+      "running",
+      "stopped",
+      "unknown",
+      "success",
+      "failed",
+    ]),
     createdAt: z.number(),
     response: tokenResponseSchema.optional(),
+    released: z.boolean().optional(),
   })
   .strict();
 export type LedgerEntry = z.infer<typeof entrySchema>;
@@ -121,12 +129,13 @@ export async function redisCommand(
   }
 }
 
-// All checks and increments occur in one atomic operation. A reservation is never
-// refunded automatically, even when a process crashes or the provider is uncertain.
-// The aggregate cap is persistent, not a per-instance or per-day resettable limit.
+// The aggregate includes completed usage plus unresolved reservations. Only an
+// outcome proved to precede submission may release a reservation automatically.
+// Existing v3 keys are retained: a release must never reset the lifetime allowance.
 export const RESERVE_SCRIPT = `
 local old = redis.call('GET', KEYS[1])
 if old then return {'existing', old} end
+if ARGV[3] ~= '1' then return {'paused'} end
 local spent = tonumber(redis.call('GET', KEYS[2]) or '0')
 if spent + 2 > tonumber(ARGV[2]) then return {'budget'} end
 local sessions = tonumber(redis.call('GET', KEYS[3]) or '0')
@@ -145,12 +154,19 @@ local old = redis.call('GET', KEYS[1])
 if not old then return 0 end
 local parsed = cjson.decode(old)
 if parsed.fingerprint ~= ARGV[1] or parsed.state ~= 'reserved' then return 0 end
-redis.call('SET', KEYS[1], ARGV[2], 'KEEPTTL')
+local next = cjson.decode(ARGV[2])
+if next.state == 'stopped' and ARGV[3] == 'release-before-submission' then
+  local held = tonumber(redis.call('GET', KEYS[2]) or '0')
+  if held < 2 then return 0 end
+  redis.call('DECRBY', KEYS[2], 2)
+  next.released = true
+end
+redis.call('SET', KEYS[1], cjson.encode(next), 'KEEPTTL')
 return 1
 `;
 export function priorRun(entry: LedgerEntry): RunResponse {
   if (
-    entry.state === "running" &&
+    ["running", "success", "failed"].includes(entry.state) &&
     entry.response &&
     Date.now() - entry.createdAt < 2 * 60 * 60 * 1000
   )
@@ -158,10 +174,10 @@ export function priorRun(entry: LedgerEntry): RunResponse {
   if (entry.state === "stopped")
     throw new LedgerError(
       "INTENT_STOPPED",
-      "This request stopped before a confirmed task. Review the previous error before starting a new preview.",
+      "This request stopped without a confirmed task. Your record is safe; review the error before starting a new preview.",
       409,
     );
-  if (entry.state === "running")
+  if (["running", "success", "failed"].includes(entry.state))
     throw new LedgerError(
       "RECOVERY_EXPIRED",
       "The recovery window has expired. This request will not be recreated. Saved packages still work.",
@@ -169,7 +185,7 @@ export function priorRun(entry: LedgerEntry): RunResponse {
     );
   throw new LedgerError(
     "SUBMISSION_UNKNOWN",
-    "This request is already reserved or its outcome is uncertain. Recover this request later; do not submit a new generation.",
+    "This request is already reserved and its outcome is uncertain. Check this request again; inspection and saving remain available.",
     409,
   );
 }
@@ -178,6 +194,7 @@ export async function reserveRun(
   sid: string,
   intent: string,
   fingerprint: string,
+  allowNew = true,
 ) {
   const key = runKey(sid, intent);
   const hour = Math.floor(Date.now() / 3_600_000);
@@ -202,6 +219,7 @@ export async function reserveRun(
     `asshown:v3:network:${hour}:${opaque(network?.slice(0, 256) || sid)}`,
     JSON.stringify(entry),
     budgetLimit(),
+    allowNew ? "1" : "0",
   ]);
   if (!Array.isArray(result))
     throw new LedgerError(
@@ -212,6 +230,11 @@ export async function reserveRun(
     throw new LedgerError(
       "CREDITS_RESERVED",
       "The deployment’s free-preview allowance is reserved. Recorded examples and offline records remain available.",
+    );
+  if (result[0] === "paused")
+    throw new LedgerError(
+      "LIVE_PAUSED",
+      "Live previews are paused. You can still inspect, save and recover an existing request.",
     );
   if (result[0] === "rate")
     throw new LedgerError(
@@ -241,6 +264,7 @@ export async function finishRun(
   entry: LedgerEntry,
   state: "running" | "unknown" | "stopped",
   response?: RunResponse,
+  releaseBeforeSubmission = false,
 ) {
   const next = entrySchema.parse({
     ...entry,
@@ -250,10 +274,12 @@ export async function finishRun(
   const done = await redisCommand([
     "EVAL",
     FINISH_SCRIPT,
-    1,
+    2,
     key,
+    "asshown:v3:units-reserved",
     entry.fingerprint,
     JSON.stringify(next),
+    releaseBeforeSubmission ? "release-before-submission" : "retain",
   ]);
   if (done !== 1)
     throw new LedgerError(

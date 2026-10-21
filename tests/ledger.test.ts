@@ -143,3 +143,29 @@ it("an invalid request ID or excessive lifetime cap never reaches Redis", async 
   );
   expect(spy).not.toHaveBeenCalled();
 });
+it("a paused deployment sends an atomic no-new-reservations gate", async () => {
+  const spy = vi
+    .spyOn(globalThis, "fetch")
+    .mockResolvedValue(Response.json({ result: ["paused"] }));
+  await expect(
+    reserveRun(request(), sid, intent, "same", false),
+  ).rejects.toMatchObject({ code: "LIVE_PAUSED" });
+  const command = JSON.parse(String(spy.mock.calls[0][1]?.body));
+  expect(command.at(-1)).toBe("0");
+});
+it("refund settlement includes the persistent allowance in the same atomic operation", async () => {
+  const spy = vi
+    .spyOn(globalThis, "fetch")
+    .mockResolvedValue(Response.json({ result: 1 }));
+  await finishRun(
+    "test-run",
+    { state: "reserved", fingerprint: "a".repeat(64), createdAt: Date.now() },
+    "stopped",
+    undefined,
+    true,
+  );
+  const command = JSON.parse(String(spy.mock.calls[0][1]?.body));
+  expect(command[2]).toBe(2);
+  expect(command[4]).toBe("asshown:v3:units-reserved");
+  expect(command.at(-1)).toBe("release-before-submission");
+});

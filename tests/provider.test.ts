@@ -56,7 +56,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 const cookie = () =>
-  `asshown-session=${sign({ type: "session", sid, exp: Date.now() + 60000 })}`;
+  `__Host-asshown-session=${sign({ type: "session", sid, exp: Date.now() + 60000 })}`;
 async function request(
   consent: unknown = {
     affirmative: true,
@@ -318,4 +318,53 @@ it("a failed outcome save still returns the known task without recreating it", a
   expect(
     spy.mock.calls.filter(([url]) => String(url).endsWith("/task/cloth-v3")),
   ).toHaveLength(1);
+});
+
+it("passes the disabled-generation gate into atomic admission and makes no upload", async () => {
+  vi.stubEnv("YOUCAM_ALLOW_GENERATION", "false");
+  const spy = providerMock();
+  await expect(createPreview(await request())).rejects.toMatchObject({
+    code: "LIVE_PAUSED",
+  });
+  expect(vi.mocked(reserveRun).mock.calls[0][4]).toBe(false);
+  expect(spy).not.toHaveBeenCalled();
+});
+it("releases only a reservation stopped before any task submission", async () => {
+  providerMock({ cost: 3 });
+  await expect(createPreview(await request())).rejects.toMatchObject({
+    code: "COST_UNVERIFIED",
+  });
+  expect(finishRun).toHaveBeenLastCalledWith(
+    "test-run",
+    expect.any(Object),
+    "stopped",
+    undefined,
+    true,
+  );
+});
+it("retains allowance when the task submission outcome is uncertain", async () => {
+  providerMock({ unknown: true });
+  await expect(createPreview(await request())).rejects.toMatchObject({
+    code: "SUBMISSION_UNKNOWN",
+  });
+  expect(finishRun).toHaveBeenLastCalledWith(
+    "test-run",
+    expect.any(Object),
+    "unknown",
+    undefined,
+    false,
+  );
+});
+it("does not refund a post-submission HTTP rejection without a billing reconciliation", async () => {
+  providerMock({ failureStatus: 422 });
+  await expect(createPreview(await request())).rejects.toMatchObject({
+    code: "PROVIDER_422",
+  });
+  expect(finishRun).toHaveBeenLastCalledWith(
+    "test-run",
+    expect.any(Object),
+    "stopped",
+    undefined,
+    false,
+  );
 });

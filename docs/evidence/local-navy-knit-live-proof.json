@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-21T14:47:15.212Z",
+  "origin": "http://localhost:3001",
+  "case": "navy-knit",
+  "originalProfileRetained": true,
+  "validMultipartReplaySameKnownTask": true,
+  "recoverySameKnownTask": true,
+  "refreshResumedSameTask": true,
+  "actualResultExportVerified": true,
+  "itemDigest": "57054f3c96884b14ba2f092de3e574c660739ad964203a870f5fbe5f122b2bc2",
+  "referenceDigest": "bcfbfaeeefb16f42e198db81aadc10c07ba5d56cebe688e3c4f8f4d56afdae9f",
+  "shopperDigest": "c35655f08d77f347a73a909a9c06bdeaa9f5e43c77d1c7a8d27c8a25849bb5a5",
+  "resultDigest": "4ee1efa3148407526c65d679aa6d3b55c69754adcc832f4517e72189a40474f2",
+  "browserExceptions": 0,
+  "newlyCreatedBrowserTasksThisInvocation": 1,
+  "syntheticInputsOnly": true
+}

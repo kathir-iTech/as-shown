@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-21T14:49:04.259Z",
+  "origin": "http://localhost:3001",
+  "case": "ivory-shirt",
+  "originalProfileRetained": true,
+  "validMultipartReplaySameKnownTask": true,
+  "recoverySameKnownTask": true,
+  "refreshResumedSameTask": true,
+  "actualResultExportVerified": true,
+  "itemDigest": "f1673ff47945282183dc420bfb7ca521707bf2f72e8abd41be1f038413545454",
+  "referenceDigest": "58770ebe1a54633f546ac836c673c9e23781558196f0fc4281c4f891c6dbc0de",
+  "shopperDigest": "fdf64f668c8ea3c1f79408822cc885f18e517a79d66e811cc9e6864cbbb3fb4a",
+  "resultDigest": "e0bf8c9d5e5a49ec30645e8d33d28630824a39de39868f5d188d6c2c5675ddc1",
+  "browserExceptions": 0,
+  "newlyCreatedBrowserTasksThisInvocation": 1,
+  "syntheticInputsOnly": true
+}

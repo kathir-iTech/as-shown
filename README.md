@@ -1,6 +1,6 @@
 # AsShown
 
-**See the style. Keep the story.**
+**Try it on. Look closer.**
 
 A secondhand garment's original condition evidence stays beside a real YouCam style preview. The buyer reviews one exact item revision and can take the actual images and notes away in a portable package.
 
@@ -10,14 +10,15 @@ This is a limited-credit, non-commercial hackathon prototype—not a marketplace
 
 Website: [asshown.vercel.app](https://asshown.vercel.app) · [Source repository](https://github.com/kathir-iTech/asshown)
 
-- Explore the completed example without supplying a photograph or API credential.
+- Explore three completed garment examples without supplying a photograph or API credential.
 - Create a seller record with a reference, front/back views and an explicit condition declaration. Every declared issue needs a linked close-up.
 - Export a seller-only item package and open it in another browser context.
 - Deliberately approve a live preview. Only the prepared shopper image and garment reference go to YouCam.
-- Review original evidence, mark personal preferences, and save a private decision package. Extract the **complete ZIP** and open `viewer.html` offline.
+- Compare style and original evidence simultaneously, mark personal preferences, and save a private decision package or standalone script-free HTML with embedded photographs.
+- Optionally publish a 24-hour seller-only link. Publication creates a separate metadata-free revision, excludes personal previews/notes, and supplies a private revocation link. Local packages require no cloud storage.
 - Zoom source evidence in the inspector, locate seller-marked regions, prepare a seller-question draft from your own decisions, and see what changed between revisions. None of these helpers uses a general-purpose AI model.
 
-All public sample people, garments and condition examples are synthetic. The recorded preview is an actual YouCam API output, not a mocked API response. See [the asset ledger](docs/ASSET_LEDGER.md).
+All public sample people, garments and condition examples are synthetic. Recorded previews are actual YouCam API outputs, not mocked API responses. See [the asset ledger](docs/ASSET_LEDGER.md) and [v4 provenance](docs/V4_ASSETS.md).
 
 ## Local setup
 
@@ -38,7 +39,8 @@ For live previews, privately edit `.env.local`:
 - Enable `YOUCAM_ALLOW_GENERATION` and `YOUCAM_PREPAID_ONLY_CONFIRMED` **only after** verifying prepaid/free units and disabling automatic purchases. Defaults are false.
 - `ASSHOWN_UNIT_RESERVE` defaults to 100 and cannot be lower than 100 in this build.
 - Configure `KV_REST_API_URL` and `KV_REST_API_TOKEN` privately for an authorized Upstash Redis instance. The deployed project uses Free with auto-upgrades and eviction disabled. Missing ledger access disables live generation; recorded examples still work.
-- `ASSHOWN_LIFETIME_UNIT_CAP` defaults to 800 and cannot exceed 800. This conservative app-only allowance is atomically reserved; failed/uncertain requests are not automatically refunded.
+- `ASSHOWN_LIFETIME_UNIT_CAP` defaults to 800 and cannot exceed 800. This app-only allowance is atomically reserved. Only a confirmed failure before task submission releases its reservation, once; submitted or uncertain requests retain theirs.
+- Optional hosted links require an authorized private Vercel Blob store (`BLOB_STORE_ID`, or a private `BLOB_READ_WRITE_TOKEN`), the same Redis ledger, `ASSHOWN_SHARE_ENABLED=true`, and a strong `CRON_SECRET` for daily housekeeping. Leave sharing disabled without these. Never enable paid upgrades.
 
 Do not put credentials in chat, source, command arguments, screenshots, public logs, or a `NEXT_PUBLIC_` variable. A ChatGPT subscription is not an API subscription; this product uses no separately billed general-purpose LLM API.
 
@@ -48,6 +50,8 @@ The live path rechecks current V3 pricing (no more than two units per result) an
 
 ```sh
 npm run typecheck -- --incremental false
+npm run lint
+npm run format:check
 npm test
 npx playwright install chromium
 npm run test:e2e
@@ -69,7 +73,7 @@ The verifier checks bounded archive structure, manifest/file agreement, image he
 
 ## Architecture and privacy
 
-Next.js 16 / React 19 / TypeScript, Zod, Sharp and fflate. Records and optional drafts use browser memory and IndexedDB. Upstash Redis stores only operational reservations, digest commitments, recovery data and pseudonymous rate counters—not photos or buyer notes. There is no cloud photo library, account system, analytics SDK or general-purpose LLM dependency. Bricolage Grotesque and Manrope are self-hosted OFL fonts.
+Next.js 16 / React 19 / TypeScript, Zod, Sharp and fflate. Records and autosaved drafts use browser memory and IndexedDB. Upstash Redis stores operational reservations, digest commitments, recovery information, publication metadata and pseudonymous rate counters—not photos or buyer notes. Optional private Blob storage holds only explicitly published seller copies; there is no personal-photo library, account system, analytics SDK or general-purpose LLM dependency. Bricolage Grotesque and Manrope are self-hosted OFL fonts.
 
 The server validates a minimal structural admission containing identifiers, dimensions, sizes and digests—not seller descriptions, flaw annotations or buyer notes. The complete record is checked in the browser. A structural commitment is not independent verification of withheld source photos. Signed, session-bound run tokens allow status/result retrieval without accepting arbitrary result URLs from the client.
 
@@ -79,7 +83,7 @@ Atomic Lua enforces this app's aggregate unit allowance and session/network hour
 
 ## Deployment
 
-Use one new Vercel project on an eligible personal/non-commercial Hobby arrangement. Set secrets server-side; use a separate signing secret per environment and verify project/team selection before configuring it. Do not buy domains, enable paid integrations or upgrade a plan. See [.env.example](.env.example).
+Deploy only to the explicitly authorized Vercel project on an eligible personal/non-commercial Hobby arrangement. Set secrets server-side; use a separate signing secret per environment and verify project/team selection before configuring it. Do not buy domains, enable paid integrations or upgrade a plan. See [.env.example](.env.example).
 
 `GET /api/health` reports configuration capability, not a promise of provider uptime or remaining credits. The server logs safe classifications only. No raw provider body, signed result URL, personal image, API key or buyer note is intentionally logged.
 

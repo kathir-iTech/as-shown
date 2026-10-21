@@ -1,0 +1,27 @@
+{
+  "checkedAt": "2026-10-21T14:18:49.059Z",
+  "service": "Actual Upstash Free Redis",
+  "duplicateAdmission": {
+    "attempts": 10,
+    "admitted": 1
+  },
+  "pausedNewAdmission": "blocked without allowance mutation",
+  "existingIntentWhilePaused": "retained",
+  "concurrentRefund": {
+    "attempts": 10,
+    "settlements": 1
+  },
+  "uncertainReservation": "retained; later refund rejected",
+  "duplicatePublication": {
+    "attempts": 10,
+    "admitted": 1
+  },
+  "transferCap": {
+    "attempts": 6,
+    "admitted": 2,
+    "blocked": 4
+  },
+  "expiry": "blocked",
+  "youcamTasksCreated": 0,
+  "productionAllowanceKeysTouched": false
+}

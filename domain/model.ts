@@ -1,22 +1,29 @@
 import { z } from "zod";
 
 export const DISCLOSURE_VERSION = "asshown-2026-10-20";
-export const MAX_ASSET_BYTES = 6_000_000;
+export const MAX_ASSET_BYTES = 12_000_000;
 export const MAX_INPUT_BYTES = 1_200_000;
 const id = z.string().regex(/^[a-zA-Z0-9-]{1,80}$/);
 export const digestSchema = z.string().regex(/^[a-f0-9]{64}$/);
 export const assetSchema = z
   .object({
     id,
-    role: z.enum(["reference", "front", "back", "closeup"]),
+    role: z.enum([
+      "reference",
+      "front",
+      "back",
+      "closeup",
+      "preview-reference",
+    ]),
     mime: z.enum(["image/jpeg", "image/png"]),
-    width: z.number().int().min(64).max(4096),
-    height: z.number().int().min(64).max(4096),
+    width: z.number().int().min(64).max(8192),
+    height: z.number().int().min(64).max(8192),
     byteLength: z.number().int().positive().max(MAX_ASSET_BYTES),
     digest: digestSchema,
     description: z.string().min(1).max(240),
     origin: z.enum(["seller-upload", "synthetic-demo"]),
     transformations: z.array(z.string().max(200)).max(5),
+    sourceDigest: digestSchema.optional(),
   })
   .strict();
 export const flawSchema = z
@@ -38,7 +45,7 @@ export const flawSchema = z
   .strict();
 export const itemSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.union([z.literal(1), z.literal(2)]),
     itemId: id,
     revision: z.number().int().min(1).max(10000),
     title: z.string().trim().min(1).max(120),
@@ -61,6 +68,22 @@ export const itemSchema = z
       if (item.assets.filter((a) => a.role === role).length !== 1)
         issue(`Add exactly one ${role} photo.`);
     }
+    const prepared = item.assets.filter((a) => a.role === "preview-reference");
+    if (prepared.length > 1 || (prepared.length && item.schemaVersion !== 2))
+      issue("Prepared preview inputs require a version 2 record.");
+    if (
+      prepared.some(
+        (a) =>
+          a.sourceDigest !==
+            item.assets.find((source) => source.role === "reference")?.digest ||
+          a.byteLength > MAX_INPUT_BYTES ||
+          a.width > 2048 ||
+          a.height > 2048,
+      )
+    )
+      issue(
+        "The prepared preview must match its original reference and input limits.",
+      );
     if (item.declaration === "no-known-flaws" && item.flaws.length)
       issue("A no-known-flaws declaration cannot contain declared flaws.");
     if (item.declaration === "declared-flaws" && !item.flaws.length)
@@ -70,7 +93,13 @@ export const itemSchema = z
     if (new Set(item.flaws.map((f) => f.id)).size !== item.flaws.length)
       issue("Issue identifiers must be unique.");
     for (const flaw of item.flaws) {
-      if (!ids.has(flaw.sourceAssetId))
+      if (
+        !item.assets.some(
+          (a) =>
+            a.id === flaw.sourceAssetId &&
+            (a.role === "front" || a.role === "back"),
+        )
+      )
         issue("An issue points to a missing source photo.");
       for (const closeup of flaw.closeupAssetIds) {
         if (!item.assets.some((a) => a.id === closeup && a.role === "closeup"))
@@ -167,7 +196,10 @@ export function freshReview(item: Item): Review {
   };
 }
 export function referenceOf(item: Item): Asset {
-  return item.assets.find((a) => a.role === "reference")!;
+  return (
+    item.assets.find((a) => a.role === "preview-reference") ||
+    item.assets.find((a) => a.role === "reference")!
+  );
 }
 export function canReusePreview(item: Item, preview: Preview): boolean {
   return referenceOf(item).digest === preview.referenceDigest;
@@ -180,7 +212,7 @@ const admissionAsset = assetSchema.omit({
 });
 export const admissionSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.union([z.literal(1), z.literal(2)]),
     itemId: id,
     revision: z.number().int().positive(),
     category: z.literal("upper_body"),
@@ -208,6 +240,20 @@ export const admissionSchema = z
     for (const role of ["reference", "front", "back"])
       if (item.assets.filter((a) => a.role === role).length !== 1)
         issue("Required source view is missing or ambiguous.");
+    const prepared = item.assets.filter((a) => a.role === "preview-reference");
+    if (
+      prepared.length > 1 ||
+      (prepared.length && item.schemaVersion !== 2) ||
+      prepared.some(
+        (a) =>
+          a.sourceDigest !==
+            item.assets.find((source) => source.role === "reference")?.digest ||
+          a.byteLength > MAX_INPUT_BYTES ||
+          a.width > 2048 ||
+          a.height > 2048,
+      )
+    )
+      issue("Prepared preview input is invalid.");
     if (
       (item.declaration === "declared-flaws" && !item.flaws.length) ||
       (item.declaration === "no-known-flaws" && item.flaws.length)
@@ -216,7 +262,13 @@ export const admissionSchema = z
     if (new Set(item.flaws.map((f) => f.id)).size !== item.flaws.length)
       issue("Issue identifiers must be unique.");
     for (const flaw of item.flaws) {
-      if (!item.assets.some((a) => a.id === flaw.sourceAssetId))
+      if (
+        !item.assets.some(
+          (a) =>
+            a.id === flaw.sourceAssetId &&
+            (a.role === "front" || a.role === "back"),
+        )
+      )
         issue("Missing source reference.");
       for (const closeup of flaw.closeupAssetIds)
         if (!item.assets.some((a) => a.id === closeup && a.role === "closeup"))
@@ -299,7 +351,7 @@ export function imageDimensions(bytes: Uint8Array): {
   height: number;
 } {
   if (bytes.length < 24 || bytes.length > MAX_ASSET_BYTES)
-    throw new Error("Use a JPEG or PNG image below 6 MB.");
+    throw new Error("Use a JPEG or PNG image below 12 MB.");
   const u32 = (n: number) =>
     new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(n);
   let width = 0,
@@ -337,7 +389,17 @@ export function imageDimensions(bytes: Uint8Array): {
       offset += length;
     }
   } else throw new Error("Only real JPEG and PNG files are supported.");
-  if (width < 64 || height < 64 || width > 4096 || height > 4096)
-    throw new Error("Use images between 64 and 4096 pixels per side.");
+  if (
+    !Number.isInteger(width) ||
+    !Number.isInteger(height) ||
+    width < 64 ||
+    height < 64 ||
+    width > 8192 ||
+    height > 8192 ||
+    width * height > 40_000_000
+  )
+    throw new Error(
+      "Use images between 64 and 8192 pixels per side, below 40 megapixels.",
+    );
   return { mime, width, height };
 }

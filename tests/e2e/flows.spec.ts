@@ -123,6 +123,7 @@ test("seller creates a no-known-flaws item and a revision resets old review with
   });
   await page.goto("/");
   await page
+    .getByRole("banner")
     .getByRole("button", { name: "Create a record", exact: true })
     .click();
   await page.getByLabel("Item title").fill("My test shirt");
@@ -141,10 +142,12 @@ test("seller creates a no-known-flaws item and a revision resets old review with
     page.getByRole("heading", { name: "My test shirt", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText(
-      "Seller reports no known flaws; not independently inspected.",
-      { exact: true },
-    ),
+    page
+      .getByRole("complementary")
+      .getByText(
+        "Seller reports no known flaws; not independently inspected.",
+        { exact: true },
+      ),
   ).toBeVisible();
   await page.getByRole("button", { name: "All stories" }).click();
   await page
@@ -202,7 +205,6 @@ test("consent gates transmission; double click and unknown submission never auto
   await page.waitForTimeout(1500);
   expect(submissions).toBe(1);
   await page.reload();
-  await page.getByRole("button", { name: "Resume saved draft" }).click();
   await expect(
     page.getByText(/An earlier submission has no confirmed task token/),
   ).toBeVisible();
@@ -219,8 +221,9 @@ test("desktop and mobile core screens have no serious/critical automated accessi
     await page.setViewportSize(viewport);
     await page.goto("/");
     await expect(
-      page.getByRole("heading", { name: /Worth a second look/ }),
+      page.getByRole("heading", { name: /Try it on/ }),
     ).toBeVisible();
+    await expect(page).toHaveTitle(/AsShown/);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -240,6 +243,7 @@ test("desktop and mobile core screens have no serious/critical automated accessi
     await expect(
       page.getByRole("heading", { name: "The rust linen shirt", exact: true }),
     ).toBeVisible();
+    await expect(page).toHaveTitle(/AsShown/);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -269,7 +273,7 @@ test("interactive lenses, source inspector, question brief and revision diff wor
     .getByRole("button", { name: "Focus on the declared cuff detail" })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Look a little closer." }),
+    page.getByText("A little wear. A question worth asking.", { exact: true }),
   ).toBeVisible();
   await page
     .getByRole("button", { name: "Explore the completed example" })
@@ -310,6 +314,7 @@ test("mobile source dialog, seller editor and privacy screens remain accessible"
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   async function check() {
+    await expect(page).toHaveTitle(/AsShown/);
     const result = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
       .analyze();
@@ -342,7 +347,7 @@ test("mobile source dialog, seller editor and privacy screens remain accessible"
   await page.getByRole("button", { name: "Edit record", exact: true }).click();
   await check();
   await page
-    .getByRole("button", { name: "Privacy & limits", exact: true })
+    .getByRole("link", { name: "Privacy & limits", exact: true })
     .click();
   await check();
 });

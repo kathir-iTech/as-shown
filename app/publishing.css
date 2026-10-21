@@ -1,0 +1,110 @@
+.publisher-panel {
+  margin: 35px 0;
+  border: 1px solid var(--line);
+  padding: 35px;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 50px;
+  background: #e8ebdf;
+}
+.publisher-panel h2 {
+  margin: 18px 0;
+  font-size: 37px;
+}
+.publisher-panel p {
+  font-size: 13px;
+  max-width: 420px;
+}
+.publisher-panel .small {
+  font-size: 11px;
+}
+.publisher-panel .check-label {
+  align-items: flex-start;
+}
+.publisher-panel .button {
+  margin: 15px 0;
+}
+.publisher-panel label > input[readonly] {
+  font-size: 11px;
+  background: var(--white) !important;
+  color: var(--ink) !important;
+}
+.publisher-panel .message-actions {
+  gap: 15px;
+  flex-wrap: wrap;
+}
+.publisher-status {
+  padding: 10px 13px;
+  border-left: 2px solid #66734d;
+  margin-top: 15px;
+  background: #f7f8ed;
+}
+.studio-skeleton {
+  padding: 65px 4.5%;
+  min-height: 80vh;
+}
+.studio-skeleton h1 {
+  font-size: 42px;
+}
+.studio-skeleton > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-top: 35px;
+}
+.studio-skeleton > div > span {
+  display: block;
+  height: 400px;
+  background: #e5e8dc;
+  border: 1px solid var(--line);
+}
+.hero-comparison .hero-style-frame img,
+.hero-comparison .hero-evidence-frame img {
+  object-fit: contain;
+}
+.hero-style-frame,
+.hero-evidence-frame {
+  background: #e1e2d8;
+}
+.source-evidence .source-map {
+  display: block;
+}
+.source-evidence .source-map > img {
+  height: auto;
+}
+.publisher-panel input[type="checkbox"] {
+  min-width: 18px;
+}
+.consent-panel details {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 15px 0;
+}
+.consent-panel details > summary {
+  cursor: pointer;
+}
+.consent-panel details a {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 700px) {
+  .publisher-panel {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    padding: 25px 18px;
+  }
+  .publisher-panel h2 {
+    font-size: 33px;
+  }
+  .publisher-panel p {
+    max-width: none;
+  }
+  .studio-skeleton {
+    padding-top: 45px;
+  }
+  .studio-skeleton h1 {
+    font-size: 34px;
+  }
+  .studio-skeleton > div > span {
+    height: 260px;
+  }
+}

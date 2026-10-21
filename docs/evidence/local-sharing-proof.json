@@ -1,0 +1,13 @@
+{
+  "checkedAt": "2026-10-21T14:49:01.008Z",
+  "origin": "http://localhost:3001",
+  "actualPrivateStorePublication": true,
+  "duplicatePublicationSameRecord": true,
+  "incorrectCapabilityRejected": true,
+  "separateBrowserRead": true,
+  "separateMetadataFreeRevision": true,
+  "personalPreviewAndNotesExcluded": true,
+  "managementRevocation": true,
+  "storedFileDeleted": true,
+  "futureReadDenied": true
+}

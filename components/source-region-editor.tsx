@@ -1,4 +1,5 @@
 "use client";
+import { useRef } from "react";
 import { type Flaw, type Asset } from "@/domain/model";
 import { Photo } from "./photo";
 
@@ -15,6 +16,7 @@ export function SourceRegionEditor({
   onChange: (region?: Region) => void;
 }) {
   const current = region || { x: 0.35, y: 0.35, width: 0.3, height: 0.3 };
+  const anchor = useRef<{ x: number; y: number } | undefined>(undefined);
   function update(field: keyof Region, percent: number) {
     if (!Number.isFinite(percent)) return;
     const next = {
@@ -41,8 +43,9 @@ export function SourceRegionEditor({
           : "Add an optional source-region marker"}
       </summary>
       <p className="small">
-        Mark the area yourself on the original {source?.role || "source"} photo.
-        This is not automatic defect detection.
+        Draw over the original {source?.role || "source"} photo with a mouse or
+        finger. Use arrow keys to move the marker, Shift + arrows to resize, or
+        the precise controls below.
       </p>
       <label className="check-label">
         <input
@@ -76,7 +79,73 @@ export function SourceRegionEditor({
               </label>
             ))}
           </div>
-          <div className="source-map" style={{ maxWidth: 310 }}>
+          <div
+            className="source-map region-drawing"
+            tabIndex={0}
+            role="group"
+            aria-label="Draw or adjust the seller-selected source region"
+            onPointerDown={(event) => {
+              if (event.button !== 0) return;
+              const rect = event.currentTarget.getBoundingClientRect();
+              anchor.current = {
+                x: Math.max(
+                  0,
+                  Math.min(0.98, (event.clientX - rect.left) / rect.width),
+                ),
+                y: Math.max(
+                  0,
+                  Math.min(0.98, (event.clientY - rect.top) / rect.height),
+                ),
+              };
+              event.currentTarget.setPointerCapture(event.pointerId);
+              event.preventDefault();
+            }}
+            onPointerMove={(event) => {
+              if (!anchor.current) return;
+              const rect = event.currentTarget.getBoundingClientRect();
+              const x = Math.max(
+                0,
+                Math.min(1, (event.clientX - rect.left) / rect.width),
+              );
+              const y = Math.max(
+                0,
+                Math.min(1, (event.clientY - rect.top) / rect.height),
+              );
+              const left = Math.min(anchor.current.x, x, 0.98),
+                top = Math.min(anchor.current.y, y, 0.98);
+              onChange({
+                x: left,
+                y: top,
+                width: Math.min(
+                  1 - left,
+                  Math.max(0.02, Math.abs(x - anchor.current.x)),
+                ),
+                height: Math.min(
+                  1 - top,
+                  Math.max(0.02, Math.abs(y - anchor.current.y)),
+                ),
+              });
+            }}
+            onPointerUp={() => {
+              anchor.current = undefined;
+            }}
+            onPointerCancel={() => {
+              anchor.current = undefined;
+            }}
+            onKeyDown={(event) => {
+              const arrows: Record<string, [keyof Region, number]> = {
+                ArrowLeft: [event.shiftKey ? "width" : "x", -1],
+                ArrowRight: [event.shiftKey ? "width" : "x", 1],
+                ArrowUp: [event.shiftKey ? "height" : "y", -1],
+                ArrowDown: [event.shiftKey ? "height" : "y", 1],
+              };
+              const change = arrows[event.key];
+              if (change) {
+                event.preventDefault();
+                update(change[0], current[change[0]] * 100 + change[1]);
+              }
+            }}
+          >
             <Photo
               bytes={bytes}
               mime={source.mime}

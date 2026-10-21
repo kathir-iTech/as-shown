@@ -1,4 +1,11 @@
-import { Unzip, UnzipInflate, zipSync, strToU8, strFromU8 } from "fflate";
+import {
+  Unzip,
+  UnzipInflate,
+  zipSync,
+  strToU8,
+  strFromU8,
+  type Zippable,
+} from "fflate";
 import { z } from "zod";
 import {
   type Bundle,
@@ -63,13 +70,29 @@ export function staticViewer(bundle: Bundle, decision: boolean): string {
   const preview =
     decision && bundle.preview && bundle.result
       ? `<section><h2>Style preview · ${escape(bundle.preview.mode)}</h2><p>Generated with YouCam Clothes VTO V3. Not evidence of fit, sizing or condition.</p><figure><img alt="Saved generated style preview" src="preview.${bundle.preview.mime === "image/png" ? "png" : "jpg"}"></figure></section>`
-      : "";
+      : decision
+        ? "<section><h2>Style preview</h2><p>No generated style image is included. This is an inspection-only decision.</p></section>"
+        : "";
   return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' file:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <title>${escape(item.title)} — AsShown saved record</title>
 <style>body{max-width:960px;margin:40px auto;padding:0 24px;background:#f5f2eb;color:#222f29;font:17px/1.6 system-ui}h1,h2{font-family:Georgia,serif}img{max-width:100%;max-height:650px;object-fit:contain}figure{display:inline-block;vertical-align:top;max-width:42%;margin:12px}section{border-top:1px solid #abb6aa;padding:20px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere}small{overflow-wrap:anywhere} @media(max-width:600px){figure{max-width:100%;margin:10px 0}}</style>
 <header><p>AsShown / saved ${decision ? "private buyer decision" : "seller item"} record</p><h1>${escape(item.title)}</h1><p>Revision ${item.revision} · seller-declared evidence, not independently inspected.</p><p>${escape(item.description)}</p></header>
-${preview}<section><h2>Original source evidence</h2>${item.assets.map((a) => picture(a.id)).join("")}</section>
+${preview}<section><h2>Original source evidence</h2>${item.assets
+    .filter((a) => a.role !== "preview-reference")
+    .map((a) => picture(a.id))
+    .join("")}</section>
+${
+  item.assets.some((a) => a.role === "preview-reference")
+    ? `<section><h2>Prepared YouCam input · derived, not original evidence</h2>${item.assets
+        .filter((a) => a.role === "preview-reference")
+        .map(
+          (a) =>
+            `${picture(a.id)}<p>${a.transformations.map(escape).join("; ")}</p><small>Original reference digest: ${escape(a.sourceDigest || "not recorded")}</small>`,
+        )
+        .join("")}</section>`
+    : ""
+}
 <section><h2>Declared condition</h2>${item.declaration === "no-known-flaws" ? "<p>Seller reports no known flaws; not independently inspected.</p>" : item.flaws.map((f) => `<article><h3>${escape(f.description)}</h3><p>Source: ${escape(item.assets.find((a) => a.id === f.sourceAssetId)!.description)}</p>${f.closeupAssetIds.map(picture).join("")}${decision ? `<p>Buyer preference: ${escape(bundle.review.decisions[f.id])}</p>` : ""}</article>`).join("")}</section>
 ${decision ? `<section><h2>Buyer notes</h2><pre>${escape(bundle.review.notes || "No notes recorded.")}</pre><p>Unreviewed issues remain unanswered. No message or purchase was sent.</p></section>` : ""}
 <footer><p>Offline snapshot. Extract the complete ZIP before opening this viewer. No external network dependencies. This HTML viewer does not verify itself: use the accompanying manifest and verifier.</p><p>Digests establish file agreement, not seller identity, honesty, trusted time or physical condition.</p><small>Item digest: ${item.contentDigest}<br>Disclosure: ${DISCLOSURE_VERSION}</small></footer></html>`;
@@ -80,10 +103,6 @@ export async function exportPackage(
   kind: "item" | "decision",
 ): Promise<Uint8Array> {
   await verifyBundle(bundle);
-  if (kind === "decision" && (!bundle.preview || !bundle.result))
-    throw new Error(
-      "Generate or open a recorded preview before saving a decision package.",
-    );
   const record = {
     format: "asshown/1",
     kind,
@@ -98,7 +117,7 @@ export async function exportPackage(
   };
   for (const asset of bundle.item.assets)
     files[filename(asset)] = bundle.assets[asset.id];
-  if (kind === "decision")
+  if (kind === "decision" && bundle.preview && bundle.result)
     files[`preview.${bundle.preview!.mime === "image/png" ? "png" : "jpg"}`] =
       bundle.result!;
   const entries = await Promise.all(
@@ -118,7 +137,15 @@ export async function exportPackage(
     throw new Error(
       "This package exceeds the expanded-size limit. Use fewer or smaller source images.",
     );
-  const result = zipSync(files, { level: 4 });
+  // JPEG/PNG are already compressed. STORE their bytes rather than spending
+  // mobile CPU trying to deflate them again; compress the small text entries.
+  const entriesToZip: Zippable = {};
+  for (const [path, bytes] of Object.entries(files))
+    entriesToZip[path] = [
+      bytes,
+      { level: /\.(json|html)$/.test(path) ? 6 : 0 },
+    ];
+  const result = zipSync(entriesToZip);
   if (result.length > ARCHIVE_LIMITS.compressed)
     throw new Error("This package exceeds the 25 MB import limit.");
   return result;
@@ -287,11 +314,13 @@ export async function importPackage(bytes: Uint8Array): Promise<Bundle> {
   }
   let result: Uint8Array | undefined;
   if (record.kind === "decision") {
-    if (!record.preview || !record.review)
-      throw new Error("Decision package lacks its preview or review.");
-    const path = `preview.${record.preview.mime === "image/png" ? "png" : "jpg"}`;
-    permitted.add(path);
-    result = files[path];
+    if (!record.review)
+      throw new Error("Decision package lacks its buyer review.");
+    if (record.preview) {
+      const path = `preview.${record.preview.mime === "image/png" ? "png" : "jpg"}`;
+      permitted.add(path);
+      result = files[path];
+    }
   } else if (record.preview || record.review)
     throw new Error("An item package must not contain personal buyer data.");
   if (Object.keys(files).some((name) => !permitted.has(name)))
@@ -306,4 +335,40 @@ export async function importPackage(bytes: Uint8Array): Promise<Bundle> {
   await verifyBundle(bundle);
   // Never render/execute the supplied viewer.html. The app uses validated records; exports regenerate the viewer.
   return bundle;
+}
+
+/** Generated from validated data only; imported HTML is never reused. */
+export async function exportHtml(
+  bundle: Bundle,
+  kind: "item" | "decision",
+): Promise<Uint8Array> {
+  await verifyBundle(bundle);
+  let html = staticViewer(bundle, kind === "decision");
+  function dataUrl(bytes: Uint8Array, mime: string) {
+    let binary = "";
+    for (let offset = 0; offset < bytes.length; offset += 32768)
+      binary += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
+    return `data:${mime};base64,${btoa(binary)}`;
+  }
+  for (const a of bundle.item.assets)
+    html = html.replaceAll(
+      `src="${filename(a)}"`,
+      `src="${dataUrl(bundle.assets[a.id], a.mime)}"`,
+    );
+  if (kind === "decision" && bundle.preview && bundle.result)
+    html = html.replaceAll(
+      `src="preview.${bundle.preview.mime === "image/png" ? "png" : "jpg"}"`,
+      `src="${dataUrl(bundle.result, bundle.preview.mime)}"`,
+    );
+  html = html
+    .replace("img-src 'self' file:", "img-src data:")
+    .replace(
+      "Extract the complete ZIP before opening this viewer.",
+      "All photographs are embedded in this file.",
+    )
+    .replace(
+      "use the accompanying manifest and verifier",
+      "use the full AsShown archive and verifier for file agreement checks",
+    );
+  return strToU8(html);
 }

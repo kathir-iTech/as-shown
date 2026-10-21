@@ -1,28 +1,56 @@
 "use client";
-import { useRef, useState } from "react";
-import { ArrowLeft, Plus, Trash2, ArrowRight, Upload } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  ArrowRight,
+  Upload,
+  Check,
+  Save,
+} from "lucide-react";
+import { z } from "zod";
 import {
   type Asset,
   type AssetData,
   type Bundle,
   type Flaw,
   type Item,
+  assetSchema,
+  flawSchema,
   sealItem,
   freshReview,
+  imageDimensions,
+  sha256,
 } from "@/domain/model";
-import { readAsset } from "@/domain/browser";
+import { readAsset, prepareInput, getLocal, putLocal } from "@/domain/browser";
 import { Photo } from "./photo";
 import { SourceRegionEditor } from "./source-region-editor";
 
-type IssueDraft = {
-  id: string;
-  description: string;
-  sourceRole: "front" | "back";
-  asset?: Asset;
-  bytes?: Uint8Array;
-  region?: Flaw["region"];
-  additional?: { asset: Asset; bytes: Uint8Array }[];
+const photoSchema = z.object({
+  asset: assetSchema,
+  bytes: z.instanceof(Uint8Array),
+});
+const issueSchema = z.object({
+  id: z.string(),
+  description: z.string().max(600),
+  sourceRole: z.enum(["front", "back"]),
+  photos: z.array(photoSchema).max(4),
+  region: flawSchema.shape.region,
+  needsReview: z.boolean().optional(),
+});
+const draftSchema = z.object({
+  title: z.string().max(120),
+  description: z.string().max(1500),
+  declaration: z.enum(["", "declared-flaws", "no-known-flaws"]),
+  assets: z.array(assetSchema).max(20),
+  data: z.record(z.string(), z.instanceof(Uint8Array)),
+  issues: z.array(issueSchema).max(12),
+});
+type IssueDraft = Omit<z.infer<typeof issueSchema>, "photos"> & {
+  photos: { asset: Asset; bytes: Uint8Array }[];
 };
+
 export function Editor({
   existing,
   onSave,
@@ -44,31 +72,91 @@ export function Editor({
     existing?.item.declaration || "",
   );
   const [issues, setIssues] = useState<IssueDraft[]>(
-    existing?.item.flaws.map((f) => {
-      const a = existing.item.assets.find((a) => a.id === f.closeupAssetIds[0]);
-      return {
-        id: f.id,
-        description: f.description,
-        sourceRole:
-          existing.item.assets.find((a) => a.id === f.sourceAssetId)?.role ===
-          "back"
-            ? "back"
-            : "front",
-        asset: a,
-        bytes: a ? existing.assets[a.id] : undefined,
-        region: f.region,
-        additional: f.closeupAssetIds.slice(1).map((id) => ({
-          asset: existing.item.assets.find((asset) => asset.id === id)!,
-          bytes: existing.assets[id],
-        })),
-      };
-    }) || [],
+    existing?.item.flaws.map((f) => ({
+      id: f.id,
+      description: f.description,
+      sourceRole:
+        existing.item.assets.find((a) => a.id === f.sourceAssetId)?.role ===
+        "back"
+          ? "back"
+          : "front",
+      region: f.region,
+      photos: f.closeupAssetIds.map((id) => ({
+        asset: existing.item.assets.find((a) => a.id === id)!,
+        bytes: existing.assets[id],
+      })),
+    })) || [],
   );
   const [error, setError] = useState("");
+  const [draftMessage, setDraftMessage] = useState("");
+  const [hydrated, setHydrated] = useState(false);
   const pendingOperations = useRef(0);
   const readVersions = useRef<Record<string, string>>({});
   const [pendingCount, setPendingCount] = useState(0);
+  // A draft belongs to this exact base revision, not every revision of an item.
+  const draftKey = "seller-draft:" + (existing?.item.contentDigest || "new");
   const busy = pendingCount > 0;
+  useEffect(() => {
+    let cancelled = false;
+    void getLocal(draftKey)
+      .then((raw) => {
+        if (cancelled) return;
+        const saved = draftSchema.safeParse(raw);
+        if (saved.success) {
+          setTitle(saved.data.title);
+          setDescription(saved.data.description);
+          setDeclaration(saved.data.declaration);
+          setAssets(saved.data.assets);
+          setData(saved.data.data);
+          setIssues(saved.data.issues);
+          setDraftMessage(
+            "Your unfinished listing was restored on this device.",
+          );
+        }
+      })
+      .catch(() =>
+        setDraftMessage(
+          "Device storage is unavailable. Keep this tab open until you export.",
+        ),
+      )
+      .finally(() => {
+        if (!cancelled) setHydrated(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [draftKey, existing]);
+  useEffect(() => {
+    if (!hydrated || busy) return;
+    setDraftMessage("Saving draft on this device…");
+    const timer = setTimeout(() => {
+      void putLocal(draftKey, {
+        title,
+        description,
+        declaration,
+        assets,
+        data,
+        issues,
+      })
+        .then(() => setDraftMessage("Draft saved on this device"))
+        .catch(() =>
+          setDraftMessage(
+            "Draft could not be saved. Keep this tab open until you export.",
+          ),
+        );
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [
+    title,
+    description,
+    declaration,
+    assets,
+    data,
+    issues,
+    hydrated,
+    busy,
+    draftKey,
+  ]);
   function beginWork() {
     pendingOperations.current++;
     setPendingCount(pendingOperations.current);
@@ -83,17 +171,49 @@ export function Editor({
     readVersions.current[role] = version;
     setError("");
     try {
-      const result = await readAsset(file, role);
+      const original = await readAsset(file, role);
+      let prepared: { asset: Asset; bytes: Uint8Array } | undefined;
+      if (role === "reference") {
+        const bytes = await prepareInput(file);
+        prepared = {
+          bytes,
+          asset: {
+            id: crypto.randomUUID(),
+            role: "preview-reference",
+            ...imageDimensions(bytes),
+            byteLength: bytes.length,
+            digest: await sha256(bytes),
+            sourceDigest: original.asset.digest,
+            description: "Prepared preview input; original reference retained",
+            origin: "seller-upload",
+            transformations: [
+              "Locally resized to at most 2048 px; JPEG encoded; metadata removed; original evidence retained.",
+            ],
+          },
+        };
+      }
       if (readVersions.current[role] !== version) return;
+      const additions = prepared ? [original, prepared] : [original];
       setAssets((current) => [
-        ...current.filter((a) => a.role !== role),
-        result.asset,
+        ...current.filter(
+          (a) =>
+            a.role !== role &&
+            !(role === "reference" && a.role === "preview-reference"),
+        ),
+        ...additions.map((entry) => entry.asset),
       ]);
-      setData((current) => ({ ...current, [result.asset.id]: result.bytes }));
+      setData((current) => ({
+        ...current,
+        ...Object.fromEntries(
+          additions.map((entry) => [entry.asset.id, entry.bytes]),
+        ),
+      }));
       if (role === "front" || role === "back")
         setIssues((current) =>
           current.map((issue) =>
-            issue.sourceRole === role ? { ...issue, region: undefined } : issue,
+            issue.sourceRole === role
+              ? { ...issue, region: undefined, needsReview: true }
+              : issue,
           ),
         );
     } catch (e) {
@@ -103,32 +223,41 @@ export function Editor({
       endWork();
     }
   }
-  async function closeup(file: File, index: number) {
-    const issueId = issues[index]?.id;
-    if (!issueId) return;
+  async function closeup(file: File, issueId: string, replace?: string) {
     beginWork();
+    const key = issueId + ":" + (replace || crypto.randomUUID());
     const version = crypto.randomUUID();
-    const readKey = `closeup:${issueId}`;
-    readVersions.current[readKey] = version;
+    readVersions.current[key] = version;
     setError("");
     try {
       const result = await readAsset(file, "closeup");
-      if (readVersions.current[readKey] !== version) return;
+      if (readVersions.current[key] !== version) return;
       setIssues((current) =>
         current.map((issue) =>
-          issue.id === issueId
-            ? { ...issue, asset: result.asset, bytes: result.bytes }
-            : issue,
+          issue.id !== issueId
+            ? issue
+            : {
+                ...issue,
+                photos: replace
+                  ? issue.photos.map((entry) =>
+                      entry.asset.id === replace ? result : entry,
+                    )
+                  : [...issue.photos, result].slice(0, 4),
+              },
         ),
       );
     } catch (e) {
-      if (readVersions.current[readKey] === version)
-        setError(
-          e instanceof Error ? e.message : "Close-up could not be read.",
-        );
+      setError(e instanceof Error ? e.message : "Close-up could not be read.");
     } finally {
       endWork();
     }
+  }
+  function updateIssue(id: string, update: Partial<IssueDraft>) {
+    setIssues((current) =>
+      current.map((issue) =>
+        issue.id === id ? { ...issue, ...update } : issue,
+      ),
+    );
   }
   async function submit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -136,46 +265,49 @@ export function Editor({
     beginWork();
     setError("");
     try {
-      if (!declaration)
-        throw new Error("Explicitly choose a condition declaration.");
+      if (!declaration) throw new Error("Choose your condition declaration.");
       if (
         ["reference", "front", "back"].some(
           (role) => !assets.some((a) => a.role === role),
         )
       )
-        throw new Error(
-          "Add the reference, front and back photographs before creating a record.",
-        );
+        throw new Error("Add the reference, front and back photographs.");
       const all = [...assets],
-        bytes: AssetData = {};
-      for (const a of assets) bytes[a.id] = data[a.id];
-      const flaws: Flaw[] = [];
+        bytes: AssetData = Object.fromEntries(
+          assets.map((a) => [a.id, data[a.id]]),
+        ),
+        flaws: Flaw[] = [];
       if (declaration === "declared-flaws")
         for (const issue of issues) {
-          if (!issue.description.trim() || !issue.asset || !issue.bytes)
+          if (issue.needsReview)
             throw new Error(
-              "Every declared issue needs a description and a readable close-up.",
+              "Reconfirm each disclosure linked to a replaced source photo.",
             );
-          all.push(issue.asset);
-          bytes[issue.asset.id] = issue.bytes;
-          for (const extra of issue.additional || []) {
-            if (!all.some((asset) => asset.id === extra.asset.id))
-              all.push(extra.asset);
-            bytes[extra.asset.id] = extra.bytes;
+          if (!issue.description.trim() || !issue.photos.length)
+            throw new Error(
+              "Each issue needs a description and at least one close-up.",
+            );
+          for (const entry of issue.photos) {
+            if (!all.some((a) => a.id === entry.asset.id))
+              all.push(entry.asset);
+            bytes[entry.asset.id] = entry.bytes;
           }
           flaws.push({
             id: issue.id,
             description: issue.description,
             sourceAssetId: assets.find((a) => a.role === issue.sourceRole)!.id,
-            closeupAssetIds: [
-              issue.asset.id,
-              ...(issue.additional || []).map((extra) => extra.asset.id),
-            ],
+            closeupAssetIds: issue.photos.map((entry) => entry.asset.id),
             ...(issue.region ? { region: issue.region } : {}),
           });
         }
+      if (all.length > 20)
+        throw new Error(
+          "This record supports 20 images. Remove a close-up before saving.",
+        );
       const item = await sealItem({
-        schemaVersion: 1,
+        schemaVersion: assets.some((a) => a.role === "preview-reference")
+          ? 2
+          : 1,
         itemId: existing?.item.itemId || crypto.randomUUID(),
         revision: (existing?.item.revision || 0) + 1,
         title,
@@ -186,9 +318,10 @@ export function Editor({
         assets: all,
         flaws,
       });
+      await putLocal(draftKey, undefined);
       onSave({ item, assets: bytes, review: freshReview(item) });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Record validation failed.");
+      setError(e instanceof Error ? e.message : "Record could not be saved.");
     } finally {
       endWork();
     }
@@ -199,16 +332,24 @@ export function Editor({
         <ArrowLeft size={17} /> Back
       </button>
       <div className="page-heading">
-        <span className="eyebrow">THE SELLER’S SIDE</span>
+        <span className="eyebrow">THE SELLER’S STUDIO</span>
         <h1>
           {existing ? "Make a new revision." : "Give this item a record."}
         </h1>
-        <p>One garment. Its original photos. The things a buyer should know.</p>
+        <p>The photographs, the details, and a little less guesswork.</p>
       </div>
+      <nav className="editor-steps" aria-label="Listing preparation">
+        <a href="#seller-item">01 / The garment</a>
+        <a href="#seller-photos">02 / The photographs</a>
+        <a href="#seller-condition">03 / The condition</a>
+        <span role="status">
+          <Save size={14} /> {draftMessage || "Opening device storage…"}
+        </span>
+      </nav>
       <form onSubmit={submit} className="editor-form">
-        <fieldset disabled={busy}>
+        <fieldset id="seller-item" disabled={!hydrated}>
           <legend>
-            <span>01</span> The item
+            <span>01</span> The garment
           </legend>
           <div className="form-two">
             <label>
@@ -232,32 +373,61 @@ export function Editor({
               maxLength={1500}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the garment without claiming a verified fit or condition."
+              placeholder="Material, measurements and the details you know."
             />
           </label>
         </fieldset>
-        <fieldset disabled={busy}>
+        <fieldset id="seller-photos" disabled={!hydrated}>
           <legend>
             <span>02</span> Source photographs
           </legend>
           <p className="muted">
-            JPEG or PNG, 64–4096 px per side. Reference under 1.2 MB; front,
-            back and close-ups under 6 MB each. Source bytes are kept unchanged.
+            JPEG or PNG, up to 12 MB and 40 megapixels. Original evidence is
+            retained; a separate smaller copy is prepared for YouCam.
           </p>
+          <label className="batch-upload">
+            <Upload size={18} /> Add three photos together: reference, front,
+            then back
+            <input
+              aria-label="Add reference front and back together"
+              type="file"
+              accept="image/jpeg,image/png"
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                if (files.length !== 3) {
+                  setError(
+                    "Choose exactly three photos in reference, front, back order, or use the individual slots below.",
+                  );
+                  return;
+                }
+                files.forEach(
+                  (file, i) =>
+                    void photo(
+                      file,
+                      (["reference", "front", "back"] as const)[i],
+                    ),
+                );
+                e.target.value = "";
+              }}
+            />
+          </label>
           <div className="upload-grid">
             {(["reference", "front", "back"] as const).map((role) => {
-              const a = assets.find((a) => a.role === role);
+              const a = assets.find((entry) => entry.role === role);
               return (
                 <label className="upload-tile" key={role}>
                   <span className="upload-title">
                     {role === "reference"
                       ? "Preview reference"
-                      : `${role[0].toUpperCase() + role.slice(1)} condition view`}
+                      : role[0].toUpperCase() +
+                        role.slice(1) +
+                        " condition view"}
                   </span>
                   <Photo
                     bytes={a ? data[a.id] : undefined}
                     mime={a?.mime}
-                    alt={`${role} seller source`}
+                    alt={role + " seller source"}
                   />
                   <span className="upload-action">
                     <Upload size={15} />
@@ -266,24 +436,31 @@ export function Editor({
                   <input
                     type="file"
                     accept="image/jpeg,image/png"
-                    aria-label={`${role} photograph`}
+                    aria-label={role + " photograph"}
                     onChange={(e) => {
                       if (e.target.files?.[0])
                         void photo(e.target.files[0], role);
+                      e.target.value = "";
                     }}
                   />
                 </label>
               );
             })}
           </div>
+          {assets.some((a) => a.role === "preview-reference") && (
+            <p className="preparation-note">
+              <Check size={16} /> Preview copy prepared locally. Your original
+              garment reference stays in the record.
+            </p>
+          )}
         </fieldset>
-        <fieldset disabled={busy}>
+        <fieldset id="seller-condition" disabled={!hydrated}>
           <legend>
             <span>03</span> Declare what you know
           </legend>
           <p className="muted">
-            This is your declaration, not an independent inspection. Don’t
-            invent issues to complete the form.
+            Show what a buyer should see. Your condition declaration stays
+            beside the style preview.
           </p>
           <div className="declaration-options">
             <label>
@@ -299,6 +476,7 @@ export function Editor({
                         id: crypto.randomUUID(),
                         description: "",
                         sourceRole: "front",
+                        photos: [],
                       },
                     ]);
                 }}
@@ -320,18 +498,17 @@ export function Editor({
               {issues.map((issue, index) => (
                 <article className="issue-editor" key={issue.id}>
                   <div className="section-line">
-                    <h3>Issue {index + 1}</h3>
+                    <h3>Detail {String(index + 1).padStart(2, "0")}</h3>
                     <button
                       type="button"
                       className="text-button"
                       onClick={() =>
                         setIssues((current) =>
-                          current.filter((_, i) => i !== index),
+                          current.filter((entry) => entry.id !== issue.id),
                         )
                       }
                     >
-                      <Trash2 size={15} />
-                      Remove
+                      <Trash2 size={15} /> Remove issue
                     </button>
                   </div>
                   <label>
@@ -341,66 +518,121 @@ export function Editor({
                       maxLength={600}
                       value={issue.description}
                       onChange={(e) =>
-                        setIssues((current) =>
-                          current.map((x, i) =>
-                            i === index
-                              ? { ...x, description: e.target.value }
-                              : x,
-                          ),
-                        )
+                        updateIssue(issue.id, { description: e.target.value })
                       }
                     />
                   </label>
-                  <div className="form-two">
-                    <label>
-                      Which source view?
-                      <select
-                        value={issue.sourceRole}
-                        onChange={(e) =>
-                          setIssues((current) =>
-                            current.map((x, i) =>
-                              i === index
-                                ? {
-                                    ...x,
-                                    sourceRole: e.target.value as
-                                      "front" | "back",
-                                    region: undefined,
-                                  }
-                                : x,
-                            ),
-                          )
-                        }
-                      >
-                        <option value="front">Front condition view</option>
-                        <option value="back">Back condition view</option>
-                      </select>
-                    </label>
-                    <label>
-                      Linked close-up photograph
+                  <label>
+                    Which source view?
+                    <select
+                      value={issue.sourceRole}
+                      onChange={(e) =>
+                        updateIssue(issue.id, {
+                          sourceRole: e.target.value as "front" | "back",
+                          region: undefined,
+                          needsReview: true,
+                        })
+                      }
+                    >
+                      <option value="front">Front condition view</option>
+                      <option value="back">Back condition view</option>
+                    </select>
+                  </label>
+                  <div className="closeup-grid">
+                    {issue.photos.map((entry, slot) => (
+                      <figure key={entry.asset.id}>
+                        <Photo
+                          bytes={entry.bytes}
+                          mime={entry.asset.mime}
+                          alt={
+                            "Close-up " +
+                            (slot + 1) +
+                            ": " +
+                            (issue.description || "condition detail")
+                          }
+                        />
+                        <figcaption>
+                          Close-up {slot + 1}
+                          <button
+                            type="button"
+                            aria-label={
+                              "Remove close-up " +
+                              (slot + 1) +
+                              " from detail " +
+                              (index + 1)
+                            }
+                            onClick={() =>
+                              updateIssue(issue.id, {
+                                photos: issue.photos.filter(
+                                  (p) => p.asset.id !== entry.asset.id,
+                                ),
+                              })
+                            }
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </figcaption>
+                        <label className="text-button">
+                          Replace
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png"
+                            aria-label={
+                              "Replace close-up " +
+                              (slot + 1) +
+                              " of detail " +
+                              (index + 1)
+                            }
+                            onChange={(e) => {
+                              if (e.target.files?.[0])
+                                void closeup(
+                                  e.target.files[0],
+                                  issue.id,
+                                  entry.asset.id,
+                                );
+                            }}
+                          />
+                        </label>
+                        {slot > 0 && (
+                          <button
+                            className="text-button"
+                            type="button"
+                            onClick={() => {
+                              const next = [...issue.photos];
+                              [next[slot - 1], next[slot]] = [
+                                next[slot],
+                                next[slot - 1],
+                              ];
+                              updateIssue(issue.id, { photos: next });
+                            }}
+                          >
+                            Move earlier
+                          </button>
+                        )}
+                      </figure>
+                    ))}
+                  </div>
+                  {issue.photos.length < 4 && (
+                    <label className="batch-upload">
+                      <Plus size={16} /> Add close-ups ({issue.photos.length}/4)
                       <input
                         type="file"
+                        multiple
                         accept="image/jpeg,image/png"
-                        required={!issue.asset}
+                        aria-label={"Add close-ups for detail " + (index + 1)}
                         onChange={(e) => {
-                          if (e.target.files?.[0])
-                            void closeup(e.target.files[0], index);
+                          const files = Array.from(e.target.files || []);
+                          if (files.length + issue.photos.length > 4) {
+                            setError(
+                              "Each detail supports up to four close-ups.",
+                            );
+                            return;
+                          }
+                          files.forEach((file) => void closeup(file, issue.id));
+                          e.target.value = "";
                         }}
                       />
                     </label>
-                  </div>
-                  {issue.asset && (
-                    <Photo
-                      bytes={issue.bytes}
-                      mime={issue.asset.mime}
-                      alt="Selected condition close-up"
-                      className="editor-closeup"
-                    />
-                  )}
-                  {!!issue.additional?.length && (
-                    <p className="small">
-                      {issue.additional.length} additional imported close-up(s)
-                      will be preserved in this revision.
-                    </p>
                   )}
                   <SourceRegionEditor
                     source={assets.find((a) => a.role === issue.sourceRole)}
@@ -411,14 +643,23 @@ export function Editor({
                       ]
                     }
                     region={issue.region}
-                    onChange={(region) =>
-                      setIssues((current) =>
-                        current.map((entry, i) =>
-                          i === index ? { ...entry, region } : entry,
-                        ),
-                      )
-                    }
+                    onChange={(region) => updateIssue(issue.id, { region })}
                   />
+                  {issue.needsReview !== undefined && (
+                    <label className="check-label warning">
+                      <input
+                        type="checkbox"
+                        checked={!issue.needsReview}
+                        onChange={(e) =>
+                          updateIssue(issue.id, {
+                            needsReview: !e.target.checked,
+                          })
+                        }
+                      />{" "}
+                      I checked this disclosure and its close-ups against the
+                      replacement source photo.
+                    </label>
+                  )}
                 </article>
               ))}
               <button
@@ -432,12 +673,12 @@ export function Editor({
                       id: crypto.randomUUID(),
                       description: "",
                       sourceRole: "front",
+                      photos: [],
                     },
                   ])
                 }
               >
-                <Plus size={17} />
-                Add an issue
+                <Plus size={17} /> Add an issue
               </button>
             </>
           )}
@@ -449,10 +690,14 @@ export function Editor({
         )}
         <div className="editor-save">
           <p>
-            No account or public upload. Changes create a new revision and reset
-            buyer decisions.
+            Your record is saved locally. Changes create a revision for the
+            buyer to review.
           </p>
-          <button className="button primary" disabled={busy} type="submit">
+          <button
+            className="button primary"
+            disabled={busy || !hydrated}
+            type="submit"
+          >
             {busy
               ? "Preparing…"
               : existing

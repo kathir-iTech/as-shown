@@ -1,40 +1,27 @@
 "use client";
-
-import { useRef, useState, type ReactNode } from "react";
-import {
-  ArrowDown,
-  ArrowRight,
-  ArrowUpRight,
-  FileArchive,
-  Focus,
-  Layers3,
-  ScanLine,
-} from "lucide-react";
-
+import { useState, type ReactNode } from "react";
+import Link from "next/link";
+import { ArrowDown, ArrowRight, ArrowUpRight, Focus } from "lucide-react";
 const lenses = [
   {
     label: "The silhouette",
-    title: "Imagine the style.",
-    text: "A real, recorded YouCam result. Useful for imagining an outfit; never a guarantee of fit.",
-    image: "preview",
-    tag: "YOUCAM · GENERATED",
+    image: "reference",
+    title: "The style you imagine. The garment you inspect.",
+    tag: "ORIGINAL REFERENCE",
   },
   {
     label: "The garment",
-    title: "Meet the original.",
-    text: "The exact reference used for the preview. Original front and back photos live in the item record.",
-    image: "reference",
-    tag: "SOURCE · UNCHANGED",
+    image: "front",
+    title: "Its original photographs stay in the picture.",
+    tag: "ORIGINAL FRONT VIEW",
   },
   {
     label: "The detail",
-    title: "Look a little closer.",
-    text: "A declared cuff issue, linked to its source. You decide whether it works for you.",
     image: "cuff",
-    tag: "CONDITION · SELLER DECLARED",
+    title: "A little wear. A question worth asking.",
+    tag: "SELLER-DISCLOSED CUFF DETAIL",
   },
 ];
-
 export function StudioLanding({
   busy,
   onExplore,
@@ -49,37 +36,36 @@ export function StudioLanding({
   importControl: ReactNode;
 }) {
   const [lens, setLens] = useState(0);
-  const stage = useRef<HTMLDivElement>(null);
   const selected = lenses[lens];
   return (
     <>
-      <section className="studio-hero">
-        <div className="hero-kicker">
-          <span className="live-dot" /> A SECONDHAND INSPECTION STUDIO{" "}
-          <span>EST. 2026 / EXPERIMENT 001</span>
+      <section className="decision-hero">
+        <div className="hero-overline">
+          <span>
+            <i className="live-dot" /> SECONDHAND / CONSIDERED
+          </span>
+          <span>YOUR NEXT FAVOURITE, IN CONTEXT.</span>
         </div>
-        <div className="studio-heading">
+        <div className="decision-hero-heading">
           <h1>
-            Worth a<br />
-            <span>second look.</span>
-            <span className="heading-asterisk" aria-hidden="true">
-              ✳
-            </span>
+            Try it on.
+            <br />
+            <em>Look closer.</em>
+            <sup>✳</sup>
           </h1>
-          <div className="hero-aside">
-            <span className="eyebrow">GOOD STYLE HAS A BACKSTORY.</span>
+          <div>
             <p>
-              Try on the look.
+              A real YouCam style preview.
               <br />
-              Get closer to the condition.
+              The original condition photographs.
               <br />
-              Keep the record that matters.
+              One decision, with the whole story.
             </p>
             <button
               className="button primary"
+              aria-label="Explore the completed example"
               onClick={onExplore}
               disabled={busy}
-              aria-label="Explore the completed example"
             >
               Enter the inspection studio <ArrowUpRight size={19} />
             </button>
@@ -88,222 +74,190 @@ export function StudioLanding({
             </button>
           </div>
         </div>
-        <div
-          className="studio-stage"
-          ref={stage}
-          onPointerMove={(event) => {
-            if (
-              event.pointerType !== "mouse" ||
-              window.matchMedia("(prefers-reduced-motion: reduce)").matches
-            )
-              return;
-            const rect = event.currentTarget.getBoundingClientRect();
-            stage.current?.style.setProperty(
-              "--pointer-x",
-              `${((event.clientX - rect.left) / rect.width - 0.5) * 8}deg`,
-            );
-            stage.current?.style.setProperty(
-              "--pointer-y",
-              `${((event.clientY - rect.top) / rect.height - 0.5) * -5}deg`,
-            );
-          }}
-          onPointerLeave={() => {
-            stage.current?.style.setProperty("--pointer-x", "0deg");
-            stage.current?.style.setProperty("--pointer-y", "0deg");
-          }}
-        >
-          <div className="stage-grid" aria-hidden="true" />
-          <div className="stage-index">
-            <span>CASE / 001</span>
-            <span>THE RUST LINEN SHIRT</span>
-          </div>
-          <div className="stage-annotations">
-            <span className="annotation-rule" />
-            <span className="eyebrow">
-              ONE ITEM.
-              <br />
-              THREE WAYS TO LOOK.
+        <div className="hero-inspection-board">
+          <div className="board-caption">
+            <span>CASE 001 / THE RUST LINEN SHIRT</span>
+            <span>
+              <Focus size={14} /> TWO VIEWS, ONE CONSIDERED DECISION
             </span>
-            <p>Every image has a different job.</p>
-            <div
-              className="lens-controls"
-              aria-label="Explore the sample views"
-            >
+          </div>
+          <div className="hero-comparison">
+            <div className="hero-style-frame">
+              <span className="frame-overline">01 / SEE THE STYLE</span>
+              <img
+                src="/samples/preview.jpg"
+                alt="Actual recorded YouCam output depicting a synthetic adult in the rust linen shirt"
+                width={800}
+                height={1200}
+                fetchPriority="high"
+              />
+              <span className="persistent-image-label">
+                AI STYLE PREVIEW · ACTUAL YOUCAM OUTPUT
+              </span>
+            </div>
+            <div className={"hero-evidence-frame lens-" + selected.image}>
+              <span className="frame-overline">02 / KEEP THE DETAILS</span>
+              <img
+                src={"/samples/" + selected.image + ".jpg"}
+                alt={selected.tag + " of the fictional rust linen shirt"}
+                width={800}
+                height={1200}
+              />
+              <span className="persistent-image-label source-label">
+                {selected.tag}
+              </span>
+              {lens !== 2 && (
+                <button
+                  className="hero-detail-pin"
+                  onClick={() => setLens(2)}
+                  aria-label="Focus on the declared cuff detail"
+                >
+                  <span>01</span>
+                  <span>
+                    A little cuff wear
+                    <br />
+                    <b>Take a closer look ↗</b>
+                  </span>
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="board-bottom">
+            <div className="hero-lenses" aria-label="Explore the sample views">
               {lenses.map((item, index) => (
                 <button
                   key={item.image}
-                  aria-pressed={index === lens}
+                  aria-pressed={lens === index}
                   onClick={() => setLens(index)}
                 >
                   <span>0{index + 1}</span>
                   {item.label}
-                  <ArrowUpRight size={15} />
+                  <ArrowUpRight size={14} />
                 </button>
               ))}
             </div>
-          </div>
-          <div className="stage-images">
-            <div className="floating-reference">
-              <span>01 / SOURCE FILE</span>
-              <img
-                src="/samples/reference.jpg"
-                alt="Synthetic rust linen shirt source reference"
-                width="800"
-                height="1200"
-              />
-              <span className="file-caption">
-                <Layers3 size={13} /> ORIGINAL REFERENCE
-              </span>
-            </div>
-            <div
-              className={"stage-main lens-" + selected.image}
-              key={selected.image}
-            >
-              <img
-                src={`/samples/${selected.image}.jpg`}
-                alt={selected.text}
-                fetchPriority="high"
-                width="800"
-                height="1200"
-              />
-              <span className="image-badge">
-                <span className="live-dot" /> {selected.tag}
-              </span>
-              <span className="frame-corner top-left" />
-              <span className="frame-corner bottom-right" />
-            </div>
+            <p aria-live="polite">{selected.title}</p>
             <button
-              className="detail-card"
-              onClick={() => setLens(2)}
-              aria-label="Focus on the declared cuff detail"
+              className="board-open"
+              onClick={onExplore}
+              aria-label="Open this item record"
             >
-              <img
-                src="/samples/cuff.jpg"
-                alt="Synthetic close-up of a frayed cuff"
-                width="200"
-                height="200"
-              />
-              <span>
-                <span className="eyebrow">DETAIL / 01</span>
-                <strong>
-                  A little wear.
-                  <br />A real question.
-                </strong>
-                <span>
-                  Inspect the cuff <ArrowUpRight size={14} />
-                </span>
-              </span>
+              <ArrowUpRight size={23} />
             </button>
           </div>
-          <div className="stage-caption" aria-live="polite">
-            <span>0{lens + 1}</span>
-            <div>
-              <h2>{selected.title}</h2>
-              <p>{selected.text}</p>
-            </div>
-            <Focus size={25} />
-          </div>
         </div>
-        <div className="stage-disclosure">
+        <div className="hero-footnote">
           <span>
-            <span className="live-dot" /> ACTUAL YOUCAM OUTPUT
+            Synthetic demonstration photographs. Actual recorded YouCam result.
           </span>
-          <p>
-            Controlled demo: synthetic person, garment and condition photos. No
-            real listing. No defect-detection claim.
-          </p>
           <a href="#the-idea" aria-label="Read how AsShown works">
-            <ArrowDown size={19} />
+            <ArrowDown size={18} />
           </a>
         </div>
         <div className="entry-tools">
           {importControl}
-          <span>
-            No account. No purchase. Source records stay on your device.
-          </span>
+          <span>Explore without an account or personal photograph.</span>
         </div>
       </section>
-
-      <section className="idea-section" id="the-idea">
-        <div className="section-number">01 / THE MISSING CONTEXT</div>
-        <div className="idea-editorial">
+      <section className="journey-section" id="the-idea">
+        <span className="eyebrow">
+          THE GOOD PART OF SECONDHAND? THE DETAILS.
+        </span>
+        <div className="journey-heading">
           <h2>
-            The photo you like.
+            Fall for the style.
             <br />
-            <span>The details you need.</span>
+            <em>Stay for the story.</em>
           </h2>
           <p>
-            For a secondhand piece, seeing yourself wearing it is only part of
-            the decision. AsShown gives the original condition photos their own
-            space beside the generated style image.
+            Seeing yourself in a secondhand piece is one part of the decision.
+            AsShown gives the original photographs, disclosed wear and
+            unanswered questions their own space beside the generated image.
           </p>
         </div>
-        <div className="method-grid">
+        <div className="journey-grid">
           <article>
-            <Layers3 size={28} />
-            <span className="eyebrow">01 / RECORD</span>
+            <span>01 / THE SELLER</span>
             <h3>
-              Every side,
-              <br />
-              accounted for.
+              Give the garment
+              <br />a clear record.
             </h3>
             <p>
-              Reference, front, back, declared issues and close-ups. Each edit
-              creates a new revision, so an old review never silently applies to
-              a changed item.
+              Add its photographs. Show what a buyer should know. Keep each
+              revision together.
             </p>
             <button className="text-button" onClick={onCreate}>
-              Create an item record <ArrowUpRight size={16} />
+              Create a record <ArrowUpRight size={16} />
             </button>
           </article>
           <article>
-            <ScanLine size={28} />
-            <span className="eyebrow">02 / INSPECT</span>
+            <span>02 / THE BUYER</span>
             <h3>
-              Style together.
+              See the look.
               <br />
-              Evidence apart.
+              Inspect the detail.
             </h3>
             <p>
-              Explore a real YouCam try-on. Open source details, locate
-              seller-marked regions, and make your own choice about every
-              declared issue.
+              Compare a personalized YouCam preview with source evidence, then
+              decide what works for you.
             </p>
             <button className="text-button" onClick={onExplore}>
-              Open the worked example <ArrowUpRight size={16} />
+              Explore the inspection <ArrowUpRight size={16} />
             </button>
           </article>
           <article>
-            <FileArchive size={28} />
-            <span className="eyebrow">03 / KEEP</span>
+            <span>03 / YOUR DECISION</span>
             <h3>
-              A decision,
+              Keep what
               <br />
-              with its context.
+              you reviewed.
             </h3>
             <p>
-              Build a seller question list and download your private record:
-              actual image files, your review and an offline viewer. No
-              disappearing image links.
+              Save the actual photographs, your questions and the precise item
+              revision in a record you can reopen.
             </p>
-            <span className="method-note">Your notes stay yours.</span>
+            <Link className="text-button" href="/examples">
+              Meet the collection <ArrowUpRight size={16} />
+            </Link>
           </article>
         </div>
       </section>
-      <section className="closing-statement">
-        <span className="eyebrow">A MORE CONSIDERED WAY TO LOOK</span>
-        <h2>
-          Before you fall for it,
-          <br />
-          get the whole picture.
-        </h2>
-        <button className="button primary" onClick={onExplore} disabled={busy}>
-          Take a closer look <ArrowUpRight size={19} />
-        </button>
-        <p>
-          A working prototype for shirts and tops. No sizing, authentication or
-          condition guarantees.
-        </p>
+      <section className="collection-teaser">
+        <div>
+          <span className="eyebrow">
+            A SMALL COLLECTION. A FEW BIG QUESTIONS.
+          </span>
+          <h2>
+            Every piece has
+            <br />
+            <em>something to show.</em>
+          </h2>
+          <Link className="button primary" href="/examples">
+            Explore three garments <ArrowUpRight size={18} />
+          </Link>
+        </div>
+        <div className="teaser-images">
+          <Link href="/examples/navy-knit">
+            <img
+              src="/samples/navy-knit/reference.jpg"
+              alt="Synthetic navy cable-knit sweater"
+              width={600}
+              height={900}
+              loading="lazy"
+            />
+            <span>02 / THE NAVY KNIT ↗</span>
+          </Link>
+          <Link href="/examples/ivory-shirt">
+            <img
+              src="/samples/ivory-shirt/reference.jpg"
+              alt="Synthetic ivory silk shirt"
+              width={600}
+              height={900}
+              loading="lazy"
+            />
+            <span>03 / THE IVORY SHIRT ↗</span>
+          </Link>
+        </div>
       </section>
     </>
   );

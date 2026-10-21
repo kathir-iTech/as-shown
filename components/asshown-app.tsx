@@ -1,5 +1,7 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -10,39 +12,124 @@ import {
 } from "lucide-react";
 import { type Bundle, canReusePreview, verifyBundle } from "@/domain/model";
 import { revisionChanges } from "@/domain/decision";
-import { importPackage, ARCHIVE_LIMITS } from "@/packages/archive";
-import { clearLocal, getLocal } from "@/domain/browser";
+import { ARCHIVE_LIMITS } from "@/packages/archive";
+import { openPackage } from "@/domain/archive-client";
+import { clearLocal, getLocal, saveDraft } from "@/domain/browser";
 import { Editor } from "./editor";
 import { Workspace } from "./workspace";
 import { StudioLanding } from "./studio-landing";
 import { PrivacyPage } from "./privacy-page";
+import { Catalogue, EXAMPLES } from "./catalogue";
+import { EvidencePage } from "./evidence-page";
+import { SharedRecord } from "./shared-record";
 
-type Screen = "home" | "work" | "edit" | "privacy";
-export function AsShownApp() {
-  const [screen, setScreen] = useState<Screen>("home");
+export function AsShownApp({ children }: { children?: ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const navigate = (path: string) => router.push(path, { scroll: false });
   const [bundle, setBundle] = useState<Bundle>();
   const [historical, setHistorical] = useState<Bundle>();
-  const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [draft, setDraft] = useState(false);
   const [openLive, setOpenLive] = useState(false);
+  const [opening, setOpening] = useState(false);
   const main = useRef<HTMLElement>(null);
-  const initial = useRef(true);
+  const clearDialog = useRef<HTMLDialogElement>(null);
   const actionLock = useRef(false);
+  const lastPath = useRef(pathname);
+  const screen =
+    pathname === "/privacy"
+      ? "privacy"
+      : pathname === "/evidence"
+        ? "evidence"
+        : pathname === "/storefront"
+          ? "storefront"
+          : pathname === "/examples"
+            ? "examples"
+            : pathname.startsWith("/seller")
+              ? "edit"
+              : pathname.startsWith("/inspect/") ||
+                  pathname.startsWith("/examples/")
+                ? "work"
+                : "home";
+  const editing = pathname.startsWith("/seller/");
   useEffect(() => {
     void getLocal<Bundle>("draft")
       .then((d) => setDraft(!!d))
       .catch(() => {});
   }, []);
   useEffect(() => {
-    if (initial.current) {
-      initial.current = false;
+    if (lastPath.current !== pathname) {
+      lastPath.current = pathname;
+      main.current?.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }, [pathname]);
+  useEffect(() => {
+    if (!bundle) return;
+    const timer = setTimeout(() => {
+      void saveDraft(bundle)
+        .then(() => setDraft(true))
+        .catch(() =>
+          setNotice(
+            "Device storage could not save this record. Export it before closing this tab.",
+          ),
+        );
+    }, 650);
+    return () => clearTimeout(timer);
+  }, [bundle]);
+  useEffect(() => {
+    let cancelled = false;
+    const example = EXAMPLES.find((e) => pathname === "/examples/" + e.slug);
+    const id =
+      pathname.startsWith("/inspect/") || pathname.startsWith("/seller/")
+        ? decodeURIComponent(pathname.split("/")[2] || "")
+        : "";
+    if (
+      (!example && (!id || bundle?.item.itemId === id)) ||
+      (example && bundle?.item.itemId === example.itemId)
+    ) {
+      setOpening(false);
       return;
     }
-    main.current?.focus();
-    window.scrollTo({ top: 0, behavior: "instant" });
-  }, [screen]);
+    setOpening(true);
+    void (async () => {
+      try {
+        const found = example
+          ? await fetch(example.archive).then(async (r) => {
+              if (!r.ok)
+                throw new Error("This demonstration could not be loaded.");
+              return openPackage(new Uint8Array(await r.arrayBuffer()));
+            })
+          : await getLocal<Bundle>("record:" + id);
+        if (cancelled) return;
+        if (!found) {
+          setBundle(undefined);
+          setNotice(
+            "This record is not on this device. Open its AsShown package to continue.",
+          );
+          return;
+        }
+        await verifyBundle(found);
+        if (cancelled) return;
+        setBundle(found);
+        setHistorical(undefined);
+      } catch (e) {
+        if (!cancelled) {
+          setBundle(undefined);
+          setNotice(
+            e instanceof Error ? e.message : "Record could not be opened.",
+          );
+        }
+      } finally {
+        if (!cancelled) setOpening(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, bundle?.item.itemId]);
   async function perform(action: () => Promise<void>) {
     if (actionLock.current) return;
     actionLock.current = true;
@@ -59,32 +146,40 @@ export function AsShownApp() {
       setBusy(false);
     }
   }
-  async function sample(live = false) {
+  async function sample(live = false, slug = "linen-shirt") {
     await perform(async () => {
-      const response = await fetch("/samples/linen-shirt.asshown.zip");
+      const example = EXAMPLES.find((e) => e.slug === slug)!;
+      const response = await fetch(example.archive);
       if (!response.ok)
         throw new Error("The recorded example could not be loaded.");
-      const next = await importPackage(
+      const next = await openPackage(
         new Uint8Array(await response.arrayBuffer()),
       );
       setBundle(next);
       setHistorical(undefined);
       setOpenLive(live);
-      setScreen("work");
+      navigate("/examples/" + slug);
     });
   }
   function newItem() {
-    setEditing(false);
-    setScreen("edit");
+    setOpenLive(false);
     setNotice("");
+    navigate("/seller");
   }
   function saved(next: Bundle) {
     setHistorical(editing ? bundle : undefined);
     setBundle(next);
     setOpenLive(false);
-    setScreen("work");
+    void saveDraft(next)
+      .then(() => setDraft(true))
+      .catch(() =>
+        setNotice(
+          "Save a package before closing this tab; device storage is unavailable.",
+        ),
+      );
+    navigate("/inspect/" + encodeURIComponent(next.item.itemId));
     setNotice(
-      "New item revision created. Buyer decisions have been reset. The record is not independently inspected.",
+      "New revision saved. Review the photographs and disclosures before recording your decision.",
     );
   }
   async function restore() {
@@ -95,27 +190,22 @@ export function AsShownApp() {
       setBundle(found);
       setHistorical(undefined);
       setOpenLive(false);
-      setScreen("work");
+      navigate("/inspect/" + encodeURIComponent(found.item.itemId));
       setNotice(
-        "Device-local source draft restored. Personal input photos and completed previews are not stored in this draft.",
+        "Device-local record restored. Personal input photos and completed previews are kept in your exports, not source drafts.",
       );
     });
   }
   async function reset() {
-    if (
-      !window.confirm(
-        "Clear this app’s device-local drafts, notes and task-recovery tokens? Downloaded files and provider-held data will not be deleted.",
-      )
-    )
-      return;
+    clearDialog.current?.close();
     await perform(async () => {
       await clearLocal();
       setBundle(undefined);
       setHistorical(undefined);
       setDraft(false);
-      setScreen("home");
+      navigate("/");
       setNotice(
-        "App-local records cleared. Downloaded packages, operational run records and provider-held data are not deleted.",
+        "Device-local records cleared. Downloads and provider-held data are not deleted.",
       );
     });
   }
@@ -135,15 +225,16 @@ export function AsShownApp() {
               void perform(async () => {
                 if (file.size > ARCHIVE_LIMITS.compressed)
                   throw new Error("Choose a package below 25 MB.");
-                const next = await importPackage(
+                const next = await openPackage(
                   new Uint8Array(await file.arrayBuffer()),
                 );
+                await saveDraft(next);
                 setBundle(next);
                 setHistorical(undefined);
                 setOpenLive(false);
-                setScreen("work");
+                navigate("/inspect/" + encodeURIComponent(next.item.itemId));
                 setNotice(
-                  "Package file agreement checked. This does not prove seller honesty or physical condition.",
+                  "Record opened. Its saved photographs match the supplied record.",
                 );
               });
             e.target.value = "";
@@ -163,40 +254,37 @@ export function AsShownApp() {
         Skip to content
       </a>
       <header className="site-header">
-        <button
-          className="wordmark"
-          aria-label="AsShown home"
-          onClick={() => setScreen("home")}
-        >
+        <Link className="wordmark" aria-label="AsShown home" href="/">
           as<span className="brand-thread">/</span>shown
           <span className="brand-dot" aria-hidden="true">
             ✳
           </span>
-        </button>
+        </Link>
         <nav aria-label="Main navigation">
-          <button
-            aria-current={screen === "home" ? "page" : undefined}
-            onClick={() => setScreen("home")}
-          >
+          <Link href="/" aria-current={screen === "home" ? "page" : undefined}>
             The studio
-          </button>
+          </Link>
+          <Link
+            href="/examples"
+            aria-current={screen === "examples" ? "page" : undefined}
+          >
+            The collection
+          </Link>
           {bundle && (
-            <button
+            <Link
+              href={"/inspect/" + encodeURIComponent(bundle.item.itemId)}
               aria-current={screen === "work" ? "page" : undefined}
-              onClick={() => setScreen("work")}
             >
               Current record
-            </button>
+            </Link>
           )}
+          <Link href="/privacy">Privacy & limits</Link>
           <button
-            aria-current={screen === "privacy" ? "page" : undefined}
-            onClick={() => setScreen("privacy")}
+            onClick={() => clearDialog.current?.showModal()}
+            aria-label="Clear local data"
           >
-            Privacy & limits
-          </button>
-          <button onClick={() => void reset()}>
             <RotateCcw size={14} />
-            Clear local data
+            <span className="clear-label">Clear local data</span>
           </button>
         </nav>
         <button className="button nav-create" disabled={busy} onClick={newItem}>
@@ -212,13 +300,43 @@ export function AsShownApp() {
           </button>
         </div>
       )}
-      {busy && (
+      {(busy || opening) && (
         <div className="global-notice" role="status">
-          Opening and checking the package…
+          Opening and checking the record…
         </div>
       )}
       <main id="main" ref={main} tabIndex={-1}>
-        {screen === "home" && (
+        {(pathname.startsWith("/share/") ||
+          pathname.startsWith("/manage/")) && (
+          <SharedRecord
+            id={pathname.split("/")[2]}
+            manage={pathname.startsWith("/manage/")}
+            onOpen={(next) => {
+              setBundle(next);
+              setHistorical(undefined);
+              setOpenLive(false);
+              navigate("/inspect/" + encodeURIComponent(next.item.itemId));
+              setNotice(
+                "Published seller copy opened. Review this revision before deciding.",
+              );
+            }}
+          />
+        )}
+        {opening && (
+          <section
+            className="studio-skeleton"
+            aria-busy="true"
+            aria-label="Opening your garment record"
+          >
+            <span className="eyebrow">YOUR INSPECTION STUDIO</span>
+            <h1>Getting the whole picture…</h1>
+            <div>
+              <span />
+              <span />
+            </div>
+          </section>
+        )}
+        {screen === "home" && pathname === "/" && (
           <StudioLanding
             busy={busy}
             onExplore={() => void sample()}
@@ -227,15 +345,28 @@ export function AsShownApp() {
             importControl={importControl}
           />
         )}
-        {screen === "edit" && (
+        {(screen === "examples" || screen === "storefront") && (
+          <Catalogue
+            storefront={screen === "storefront"}
+            onOpen={(slug) => void sample(false, slug)}
+          />
+        )}
+        {screen === "evidence" && <EvidencePage />}
+        {screen === "edit" && (!editing || bundle) && (
           <Editor
             key={editing && bundle ? bundle.item.contentDigest : "new"}
             existing={editing ? bundle : undefined}
             onSave={saved}
-            onCancel={() => setScreen(bundle ? "work" : "home")}
+            onCancel={() =>
+              navigate(
+                bundle
+                  ? "/inspect/" + encodeURIComponent(bundle.item.itemId)
+                  : "/",
+              )
+            }
           />
         )}
-        {screen === "work" && bundle && (
+        {screen === "work" && bundle && !opening && (
           <>
             {historical && (
               <section className="revision-diff" aria-label="Revision changes">
@@ -250,10 +381,7 @@ export function AsShownApp() {
                     ),
                   )}
                 </ul>
-                <p>
-                  Your previous choices were cleared. Review the revised
-                  evidence before deciding again.
-                </p>
+                <p>Review the revised evidence before deciding again.</p>
                 {historical.preview &&
                   historical.result &&
                   canReusePreview(bundle.item, historical.preview) && (
@@ -285,32 +413,69 @@ export function AsShownApp() {
               key={bundle.item.contentDigest}
               bundle={bundle}
               onChange={setBundle}
-              onEdit={() => {
-                setEditing(true);
-                setScreen("edit");
-              }}
-              onHome={() => setScreen("home")}
+              onEdit={() =>
+                navigate("/seller/" + encodeURIComponent(bundle.item.itemId))
+              }
+              onHome={() => navigate("/")}
               onNotice={setNotice}
               openLive={openLive}
             />
           </>
         )}
-        {screen === "privacy" && (
-          <PrivacyPage onHome={() => setScreen("home")} />
+        {(screen === "work" || editing) && !bundle && !opening && (
+          <section className="empty-record">
+            <span className="eyebrow">YOUR RECORD</span>
+            <h1>Bring the photographs with you.</h1>
+            <p>
+              Device-local records are available where you saved them. Open an
+              exported package here, or explore a complete demonstration.
+            </p>
+            {importControl}
+            <Link className="button primary" href="/examples">
+              Explore the collection <ArrowUpRight size={17} />
+            </Link>
+          </section>
         )}
+        {screen === "privacy" && <PrivacyPage onHome={() => navigate("/")} />}
+        {children}
       </main>
       <footer className="site-footer">
-        <button className="wordmark" onClick={() => setScreen("home")}>
+        <Link className="wordmark" href="/">
           as<span className="brand-thread">/</span>shown
-        </button>
+        </Link>
         <p>Secondhand deserves a closer look.</p>
         <div>
           <span>Powered by YouCam Clothes VTO V3</span>
-          <button onClick={() => setScreen("privacy")}>
-            Privacy, provenance & limitations <ArrowUpRight size={14} />
-          </button>
+          <Link href="/storefront">
+            Demo storefront <ArrowUpRight size={14} />
+          </Link>
+          <Link href="/evidence">How it works & release evidence</Link>
+          <Link href="/privacy">Privacy, provenance & limitations</Link>
         </div>
       </footer>
+      <dialog
+        ref={clearDialog}
+        className="clear-dialog"
+        aria-labelledby="clear-title"
+      >
+        <span className="eyebrow">THIS DEVICE</span>
+        <h2 id="clear-title">Clear your local records?</h2>
+        <p>
+          This removes saved drafts, notes and recovery tokens on this device.
+          Downloaded files and provider-held data remain.
+        </p>
+        <div className="message-actions">
+          <button
+            className="button secondary"
+            onClick={() => clearDialog.current?.close()}
+          >
+            Keep my records
+          </button>
+          <button className="button primary" onClick={() => void reset()}>
+            Clear device records
+          </button>
+        </div>
+      </dialog>
     </>
   );
 }
