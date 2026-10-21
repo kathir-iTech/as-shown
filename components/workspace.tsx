@@ -44,7 +44,7 @@ import { EvidenceInspector } from "./evidence-inspector";
 
 type Pending = {
   intent?: string;
-  stage: "submitting" | "running" | "unknown";
+  stage: "submitting" | "running" | "unknown" | "complete";
   itemDigest: string;
   referenceDigest: string;
   shopperDigest: string;
@@ -182,7 +182,9 @@ export function Workspace({
           setMessage(
             "Your real YouCam result is ready. Review original condition evidence beside it.",
           );
-          await putLocal(pendingKey, undefined);
+          // Retain only the known capability, never the personal input/result.
+          // A completed image can be re-fetched after refresh until token expiry.
+          await putLocal(pendingKey, { ...pending, stage: "complete" });
           return;
         }
         if (++count >= 18) {

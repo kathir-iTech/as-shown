@@ -2,6 +2,96 @@ import { test, expect } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { importPackage } from "../../packages/archive";
+import { createHash } from "node:crypto";
+
+test("a fast completed preview remains recoverable after refresh without a second creation (controlled responses)", async ({
+  page,
+}) => {
+  const fixture = await importPackage(
+    new Uint8Array(await readFile("public/samples/linen-shirt.asshown.zip")),
+  );
+  const result = await readFile("public/samples/preview.jpg");
+  let creations = 0,
+    checks = 0;
+  await page.route("**/api/preview", async (route) => {
+    creations++;
+    await route.fulfill({
+      json: {
+        state: "running",
+        token: "controlled-browser-token-not-a-real-capability",
+        createdAt: new Date().toISOString(),
+        itemDigest: fixture.item.contentDigest,
+        referenceDigest: fixture.preview!.referenceDigest,
+        shopperDigest: fixture.preview!.shopperDigest,
+      },
+    });
+  });
+  await page.route("**/api/preview/status", async (route) => {
+    checks++;
+    await route.fulfill({ json: { state: "success" } });
+  });
+  await page.route("**/api/preview/result", async (route) => {
+    await route.fulfill({
+      body: result,
+      headers: {
+        "Content-Type": "image/jpeg",
+        "X-AsShown-Result-Digest": createHash("sha256")
+          .update(result)
+          .digest("hex"),
+      },
+    });
+  });
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Try a live preview", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Use synthetic sample instead" })
+    .click();
+  await page
+    .getByRole("checkbox", { name: /I’m an adult and have permission/ })
+    .check();
+  await page
+    .getByRole("button", { name: "Send approved images & preview" })
+    .click();
+  await expect(
+    page.getByText("Live YouCam result", { exact: true }),
+  ).toBeVisible();
+  // Wait for actual persisted state, not an arbitrary sleep or stale UI message.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (key) =>
+          new Promise<boolean>((resolve) => {
+            const opening = indexedDB.open("asshown-local-v1", 1);
+            opening.onsuccess = () => {
+              const db = opening.result;
+              const read = db
+                .transaction("records")
+                .objectStore("records")
+                .get(key);
+              read.onsuccess = () => {
+                resolve(
+                  read.result?.stage === "complete" && !!read.result?.token,
+                );
+                db.close();
+              };
+            };
+          }),
+        `pending:${fixture.item.itemId}:${fixture.item.contentDigest}`,
+      ),
+    )
+    .toBe(true);
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Check the same task", exact: true })
+    .click();
+  await expect(
+    page.getByText("Live YouCam result", { exact: true }),
+  ).toBeVisible();
+  expect(creations).toBe(1);
+  expect(checks).toBeGreaterThanOrEqual(2);
+});
 
 test("new scenarios have real recorded outputs, stable routes and standalone offline HTML", async ({
   page,
