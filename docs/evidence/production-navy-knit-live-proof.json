@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-21T16:09:02.631Z",
+  "checkedAt": "2026-10-21T17:02:01.172Z",
   "origin": "https://asshown.vercel.app",
   "case": "navy-knit",
   "originalProfileRetained": true,
@@ -12,6 +12,6 @@
   "shopperDigest": "c35655f08d77f347a73a909a9c06bdeaa9f5e43c77d1c7a8d27c8a25849bb5a5",
   "resultDigest": "de34d59a69efca278cd68bcf7e05d843bec049cfc4f861662f5d1ae312909c10",
   "browserExceptions": 0,
-  "newlyCreatedBrowserTasksThisInvocation": 1,
+  "newlyCreatedBrowserTasksThisInvocation": 0,
   "syntheticInputsOnly": true
 }

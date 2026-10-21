@@ -1,0 +1,29 @@
+{
+  "origin": "https://asshown.vercel.app",
+  "runtimeCommit": "d017411a999135615ea06fcb3b51dfbc853735d7",
+  "deployment": "dpl_CiKheXeCRUwk3YFyzggUwTcr7NAf",
+  "framework": "Next.js 16.4.2",
+  "environment": "Windows headless Google Chrome; desktop and mobile viewports, not physical-device certification",
+  "tests": 11,
+  "passed": 11,
+  "failed": 0,
+  "reportedDuration": "3.6 minutes",
+  "publicNetworkAssertionTimeoutMs": 45000,
+  "localAssertionTimeoutMs": 20000,
+  "providerCreationInterceptedInRoutineTests": true,
+  "actualProviderProofStoredSeparately": true,
+  "coverage": [
+    "recorded/private/offline export and independent-browser import",
+    "seller creation and revision/reuse",
+    "consent and unknown submission double-click protection",
+    "desktop/mobile axe and overflow",
+    "source inspector and seller questions",
+    "mobile editor/privacy navigation accessibility",
+    "fast-completion refresh recovery with controlled responses",
+    "navy recorded case and standalone offline HTML",
+    "ivory recorded case and standalone offline HTML",
+    "draft restore and four close-ups with source reconfirmation",
+    "nonce CSP rejects parser-inserted untrusted script"
+  ],
+  "limitations": "Earlier slow-network timeouts and metadata timing issues are retained in the release history. Not a load test, independent usability study or full screen-reader audit."
+}

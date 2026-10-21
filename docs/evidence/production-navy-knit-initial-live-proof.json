@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-21T16:09:02.631Z",
+  "origin": "https://asshown.vercel.app",
+  "case": "navy-knit",
+  "originalProfileRetained": true,
+  "validMultipartReplaySameKnownTask": true,
+  "recoverySameKnownTask": true,
+  "refreshResumedSameTask": true,
+  "actualResultExportVerified": true,
+  "itemDigest": "57054f3c96884b14ba2f092de3e574c660739ad964203a870f5fbe5f122b2bc2",
+  "referenceDigest": "bcfbfaeeefb16f42e198db81aadc10c07ba5d56cebe688e3c4f8f4d56afdae9f",
+  "shopperDigest": "c35655f08d77f347a73a909a9c06bdeaa9f5e43c77d1c7a8d27c8a25849bb5a5",
+  "resultDigest": "de34d59a69efca278cd68bcf7e05d843bec049cfc4f861662f5d1ae312909c10",
+  "browserExceptions": 0,
+  "newlyCreatedBrowserTasksThisInvocation": 1,
+  "syntheticInputsOnly": true
+}
