@@ -2,7 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 90000,
-  expect: { timeout: 20000 },
+  // Public examples include 1–2 MB original-evidence archives. Keep assertions
+  // identical but allow real cross-region download time, unlike localhost.
+  expect: { timeout: process.env.ASSHOWN_TEST_URL ? 45000 : 20000 },
   workers: 1,
   fullyParallel: false,
   use: {

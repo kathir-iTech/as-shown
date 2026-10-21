@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-10-21T15:52:00.073Z",
+  "origin": "https://asshown.vercel.app",
+  "case": "linen-shirt",
+  "originalProfileRetained": true,
+  "validMultipartReplaySameKnownTask": true,
+  "recoverySameKnownTask": true,
+  "refreshResumedSameTask": false,
+  "actualResultExportVerified": true,
+  "limitation": "Fast completion cleared the old browser recovery pointer before export. Original-session API recovery/download verified instead; no alias or new creation. App fix retains completed capability and requires a separate browser regression/live validation.",
+  "itemDigest": "c869df532b708dca0e95ec697494965e125fd65e7ccbb995ed363fb4a9fd7c83",
+  "referenceDigest": "30fd95590c813f4bf7dd6ec04080584fe23d8b5df178aea20c9247a85cb631c7",
+  "shopperDigest": "c35655f08d77f347a73a909a9c06bdeaa9f5e43c77d1c7a8d27c8a25849bb5a5",
+  "resultDigest": "73935a3c307f6696e703c1660ef078d250aba176fe6de904478c84ffff3edfab",
+  "browserExceptions": 0,
+  "newlyCreatedBrowserTasksThisInvocation": 0,
+  "syntheticInputsOnly": true
+}

@@ -43,7 +43,7 @@ Known task tokens and request intent IDs survive a refresh in IndexedDB. A recov
 
 A missing/uncertain creation response is not permission to resubmit. If the provider accepted work but the response was lost, the entry remains reserved/unknown and the UI stops. Only a confirmed failure BEFORE task submission releases the two-unit app reservation, using an atomic compare-and-set and decrement in the same Redis operation. Repeated completion cannot decrement twice. Submitted failures and ambiguous outcomes retain the reservation. This is **not** a provider-unit refund or exactly-once transaction across Redis and YouCam. Disabled generation is checked atomically after existing-intent lookup, allowing known replay without reserving new work.
 
-Tokens expire after two hours; saved local packages do not depend on the token or provider link. If a result was never saved before expiry, recovery is not guaranteed. Closing a browser does not guarantee cancellation of a running remote task.
+Tokens expire after two hours; saved local packages do not depend on the token or provider link. A completed task's capability remains in device storage so a refresh can re-fetch the same known image; personal input/result bytes are not persisted there. Explicit clearing removes it. If a result was never exported before expiry, recovery is not guaranteed. Closing a browser does not guarantee cancellation of a running remote task.
 
 ## Package format and import
 

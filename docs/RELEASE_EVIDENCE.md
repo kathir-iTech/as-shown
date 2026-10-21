@@ -16,7 +16,7 @@
 
 ## Evidence, not mock results
 
-61 unit/integration tests and all nine browser flows passed locally after reconstruction. These cover existing archive/provider/model boundaries plus lineage, HTML export, seller-only publication privacy, disabled admission, safe release behavior, seller creation/revision, independent-browser import, offline ZIP/HTML, consent, lost submission behavior, draft restoration, multi-close-up editing, mobile/desktop automated accessibility and parser-inserted untrusted-script blocking. Lint, non-incremental typecheck, formatting and production build passed. The production dependency audit reported zero known vulnerabilities. Routine tests never create provider tasks.
+61 unit/integration tests and all ten browser flows passed in [GitHub CI](https://github.com/kathir-iTech/asshown/actions/runs/39630066486). These cover existing archive/provider/model boundaries plus lineage, HTML export, seller-only publication privacy, disabled admission, safe release behavior, seller creation/revision, independent-browser import, offline ZIP/HTML, consent, lost submission behavior, fast-completion recovery, draft restoration, multi-close-up editing, mobile/desktop automated accessibility and parser-inserted untrusted-script blocking. Lint, non-incremental typecheck, formatting and production build passed. The production dependency audit reported zero known vulnerabilities. Routine tests never create provider tasks.
 
 Actual Free Redis tests used isolated keys and removed those keys afterward. Ten concurrent copies admitted one reservation; paused work created no reservation; concurrent release decremented once; uncertain outcomes retained allowance; concurrent publication admitted once; transfer and expiry gates rejected excess reads. These are bounded concurrency tests, not a broad load/security audit.
 
@@ -26,7 +26,19 @@ Authenticated free-unit observations: **984 before, 980 after** those two tasks;
 
 Actual private Blob/Redis publication passed: same-intent replay returned the same publication; an incorrect capability was denied; another browser read the seller copy; publication incremented revision and excluded personal result/notes; the management UI revoked it, confirmed file deletion, and future reads returned unavailable. A downloaded copy cannot be recalled.
 
-Sanitized machine-readable proofs are in [evidence/](evidence/). They contain digests and outcomes, not credentials, task tokens, session cookies, signed storage URLs or private management links. Production release checks are recorded separately after deployment; local production mode is not mislabelled as public production.
+Sanitized machine-readable proofs are in [evidence/](evidence/). They contain digests and outcomes, not credentials, task tokens, session cookies, signed storage URLs or private management links. Local production mode is not mislabelled as public production.
+
+## Public deployment verification
+
+Runtime source `f2f471324b12f21755772cdec323c833257f77fc` is deployed as `dpl_3VXtNMYJjj77TCytSftuEDRdjEwX` at [asshown.vercel.app](https://asshown.vercel.app). Subsequent evidence/test-configuration commits do not change this runtime. The existing Hobby project, free Redis and private Blob store were retained; no upgrade, payment method or paid fallback was introduced.
+
+Actual public production navy validation passed one deliberate creation, valid multipart same-intent replay, same-original-session recovery, refresh resumption and verified export of the actual provider image. Production seller publication, separate-browser read, wrong-capability denial, revision/privacy checks, revocation, physical deletion and post-revocation denial also passed. Ten public desktop/mobile screenshots showed no browser exceptions or horizontal overflow on those sampled screens.
+
+The earlier production linen test exposed fast completion clearing its recovery pointer before refresh/export. Its original browser profile and intent were retained; the actual image was recovered through the original-session API, without creating another task or seeding a ledger alias. The runtime now retains the completed capability (not personal photo/result bytes) until token expiry/clearing. A new controlled regression and the distinct production navy flow verify the corrected path. The linen proof explicitly retains its narrower UI limitation rather than being rewritten as a full pass.
+
+Total bounded reconstruction validation: four deliberate synthetic tasks, eight free units, **984 before to 976 after**. Two tasks produced the new recorded cases; two exercised public production, including the recovery fix. No task-creation retry was made for an uncertain intent. No additional generation is needed for this evidence.
+
+Initial public runs exceeded 20-second example-loading assertions. Traces showed a 16.8-second response wait in one run and a 19-second complete ZIP download in another, leaving insufficient time for the worker to process it. Public-network assertions now allow 45 seconds, versus 20 locally; their content/security assertions are unchanged. A separate traced browser opening completed in 14.5 seconds with no exception. Download/first-load variability remains a performance risk, not hidden as a perfect latency score. A standalone 2.02 MB example download returned HTTP 200 in 3.07 seconds; none of these observations is a broad benchmark.
 
 ## Reproduce without using credits
 
