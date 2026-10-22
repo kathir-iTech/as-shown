@@ -150,7 +150,7 @@ export function StudioLanding({
           <span>
             Synthetic demonstration photographs. Actual recorded YouCam result.
           </span>
-          <a href="#the-idea" aria-label="Read how AsShown works">
+          <a href="#the-idea" aria-label="Read how As-Shown works">
             <ArrowDown size={18} />
           </a>
         </div>
@@ -171,7 +171,7 @@ export function StudioLanding({
           </h2>
           <p>
             Seeing yourself in a secondhand piece is one part of the decision.
-            AsShown gives the original photographs, disclosed wear and
+            As-Shown gives the original photographs, disclosed wear and
             unanswered questions their own space beside the generated image.
           </p>
         </div>

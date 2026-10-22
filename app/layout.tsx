@@ -8,20 +8,22 @@ import { AsShownApp } from "@/components/asshown-app";
 import { connection } from "next/server";
 import { StudioErrorBoundary } from "@/components/error-boundary";
 export const metadata: Metadata = {
-  metadataBase: new URL("https://asshown.vercel.app"),
-  title: "AsShown — A secondhand inspection studio",
+  metadataBase: new URL("https://as-shown.vercel.app"),
+  applicationName: "As-Shown",
+  title: "As-Shown — A secondhand inspection studio",
   description:
     "A secondhand garment’s original condition photos, a real YouCam style preview, and a portable record of your decision.",
   openGraph: {
-    title: "AsShown — Try it on. Look closer.",
+    title: "As-Shown — Try it on. Look closer.",
+    siteName: "As-Shown",
     description:
       "A real YouCam style preview. Original condition photographs. Your decision, with its context.",
     type: "website",
-    url: "https://asshown.vercel.app",
+    url: "https://as-shown.vercel.app",
   },
   twitter: {
     card: "summary_large_image",
-    title: "AsShown — Try it on. Look closer.",
+    title: "As-Shown — Try it on. Look closer.",
   },
 };
 export default async function RootLayout({

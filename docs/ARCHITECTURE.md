@@ -8,7 +8,7 @@ The record digest covers canonical JSON and referenced image digests. Changes cr
 
 ## Data movement
 
-| Data                                                             | Browser / download                      | AsShown server                                                | YouCam                                         |
+| Data                                                             | Browser / download                      | As-Shown server                                               | YouCam                                         |
 | ---------------------------------------------------------------- | --------------------------------------- | ------------------------------------------------------------- | ---------------------------------------------- |
 | Full record, title, description, flaw notes/regions              | Yes                                     | No                                                            | No                                             |
 | Structural identifiers, dimensions, sizes and digest commitments | Yes                                     | During approved preview                                       | Not forwarded                                  |
@@ -20,7 +20,7 @@ The record digest covers canonical JSON and referenced image digests. Changes cr
 | Recovery token                                                   | Explicitly explained IndexedDB recovery | Validated against signed cookie                               | Task ID used server-side                       |
 | API credential                                                   | Never                                   | Environment only                                              | Authentication only                            |
 
-The table describes local/preview processing. Explicit optional publication additionally sends the seller record (including descriptions, regions and source photographs) to AsShown's server and private Blob storage. It NEVER publishes the private preview, buyer decisions or notes. Sharp creates new orientation-corrected, metadata-free JPEGs in a separate revision; local originals remain unchanged. A link recipient can download this copy, so revocation cannot recall earlier downloads. Publication consent is separate from preview consent.
+The table describes local/preview processing. Explicit optional publication additionally sends the seller record (including descriptions, regions and source photographs) to As-Shown's server and private Blob storage. It NEVER publishes the private preview, buyer decisions or notes. Sharp creates new orientation-corrected, metadata-free JPEGs in a separate revision; local originals remain unchanged. A link recipient can download this copy, so revocation cannot recall earlier downloads. Publication consent is separate from preview consent.
 
 The provider policy is external to the app. Retention, USA storage, biometric implications and exceptions are disclosed before transmission. Never equate clearing browser storage with deleting provider-held data. EXIF is removed from prepared live inputs. Local seller source bytes remain unchanged and may contain metadata; exported local packages retain it, unlike the explicit hosted publication copy.
 

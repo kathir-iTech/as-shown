@@ -9,7 +9,7 @@ export function EvidencePage() {
         you can inspect.
       </h1>
       <p>
-        AsShown connects a real YouCam style preview to an explicit seller
+        As-Shown connects a real YouCam style preview to an explicit seller
         condition record and the buyer’s own decisions.
       </p>
       <section>
@@ -43,15 +43,15 @@ export function EvidencePage() {
           scope.
         </p>
         <p>
-          <a href="https://github.com/kathir-iTech/asshown">
+          <a href="https://github.com/kathir-iTech/as-shown">
             Source and setup instructions
           </a>{" "}
           ·{" "}
-          <a href="https://github.com/kathir-iTech/asshown/actions">
+          <a href="https://github.com/kathir-iTech/as-shown/actions">
             Automated checks
           </a>{" "}
           ·{" "}
-          <a href="https://github.com/kathir-iTech/asshown/blob/main/docs/RELEASE_EVIDENCE.md">
+          <a href="https://github.com/kathir-iTech/as-shown/blob/main/docs/RELEASE_EVIDENCE.md">
             Release evidence
           </a>
         </p>
@@ -74,9 +74,9 @@ export function EvidencePage() {
         <p>
           The <Link href="/storefront">owned demo storefront</Link> links each
           fictional listing to a fixed example record. An external merchant
-          supplies an authorized seller-only AsShown archive or a published
+          supplies an authorized seller-only As-Shown archive or a published
           seller-record link. Listing prices, stock and checkout remain with
-          that merchant. AsShown does not scrape marketplaces or claim an
+          that merchant. As-Shown does not scrape marketplaces or claim an
           installed partnership.
         </p>
       </section>

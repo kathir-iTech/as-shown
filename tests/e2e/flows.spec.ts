@@ -17,6 +17,10 @@ test("recorded workflow, private export, separate-context seller import and offl
     if (r.url().endsWith("/api/preview") && r.method() === "POST") creations++;
   });
   await page.goto("/");
+  await expect(
+    page.getByRole("link", { name: "As-Shown home", exact: true }),
+  ).toHaveText("as-shown✳");
+  await expect(page).toHaveTitle(/As-Shown/);
   await page
     .getByRole("button", { name: "Explore the completed example" })
     .click();
@@ -41,6 +45,7 @@ test("recorded workflow, private export, separate-context seller import and offl
   const privateDownload = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download private decision" }).click();
   const privateFile = await privateDownload;
+  expect(privateFile.suggestedFilename()).toMatch(/^as-shown-decision-/);
   const privatePath = info.outputPath("private.zip");
   await privateFile.saveAs(privatePath);
   const bytes = new Uint8Array(await readFile(privatePath));
@@ -88,7 +93,7 @@ test("recorded workflow, private export, separate-context seller import and offl
   const buyerPage = await buyer.newPage();
   await buyerPage.goto("/");
   await buyerPage
-    .getByLabel("Import AsShown package")
+    .getByLabel("Import As-Shown package")
     .setInputFiles(sellerPath);
   await expect(
     buyerPage.getByRole("heading", {
@@ -223,7 +228,7 @@ test("desktop and mobile core screens have no serious/critical automated accessi
     await expect(
       page.getByRole("heading", { name: /Try it on/ }),
     ).toBeVisible();
-    await expect(page).toHaveTitle(/AsShown/);
+    await expect(page).toHaveTitle(/As-Shown/);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -243,7 +248,7 @@ test("desktop and mobile core screens have no serious/critical automated accessi
     await expect(
       page.getByRole("heading", { name: "The rust linen shirt", exact: true }),
     ).toBeVisible();
-    await expect(page).toHaveTitle(/AsShown/);
+    await expect(page).toHaveTitle(/As-Shown/);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -314,7 +319,7 @@ test("mobile source dialog, seller editor and privacy screens remain accessible"
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   async function check() {
-    await expect(page).toHaveTitle(/AsShown/);
+    await expect(page).toHaveTitle(/As-Shown/);
     const result = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
       .analyze();

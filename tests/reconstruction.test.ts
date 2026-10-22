@@ -47,6 +47,8 @@ it("embeds real image bytes in a script-free readable HTML record", async () => 
   expect(html).toContain('src="data:image/jpeg;base64,');
   expect(html).not.toMatch(/<script|src="https?:|src="assets\//i);
   expect(html).toContain("All photographs are embedded");
+  expect(html).toContain("As-Shown saved record");
+  expect(html).not.toContain("AsShown saved record");
 });
 it("seller HTML excludes the personal preview and buyer notes", async () => {
   const input = {

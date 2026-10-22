@@ -1,4 +1,14 @@
-# AsShown reconstruction — reproducible evidence
+# As-Shown — reproducible evidence
+
+## Naming and later verification
+
+The current product name is **As-Shown**, at [as-shown.vercel.app](https://as-shown.vercel.app), with source at [kathir-iTech/as-shown](https://github.com/kathir-iTech/as-shown). The dated reconstruction evidence below retains the names, origins, commits and outcomes actually observed; those are historical evidence, not current branding.
+
+The original saved artifact was successfully reopened offline at `2026-10-22T17:56:18.085Z`, after **49.339 real hours**, with the same SHA-256 (`77a2bca3a1734af282d846cdaab8cb9f9228c71ef8b5160f3d393eb74f5c7803`), six loaded photographs and zero scripts. This closes that specific elapsed-time observation, not a general durability or trusted-timestamp certification. See [the observation](evidence/saved-artifact-49h.json).
+
+The branding-only re-export of all three public examples preserved the exact item/result digests, image bytes and review data. Archive format identifiers, browser database keys, existing consent identifiers and server signing/ledger state deliberately remain compatible. Old-origin browser data is not silently migrated; users can export there and import on the new origin. Historical test artifacts have not been rewritten to claim they ran on the new address.
+
+## Original reconstruction report — 21 October 2026
 
 21 October 2026. This is a non-commercial, limited-credit hackathon prototype, not a production-scale certification or a measured impact study. V4 reconstructs the existing AsShown application; it does not claim a wholly unprecedented invention.
 

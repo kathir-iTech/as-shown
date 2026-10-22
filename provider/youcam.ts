@@ -64,7 +64,7 @@ export function sameOrigin(request: Request): void {
   if (request.headers.get("origin") !== new URL(request.url).origin)
     throw new AppError(
       "ORIGIN_REJECTED",
-      "Use the preview from the AsShown website.",
+      "Use the preview from the As-Shown website.",
       403,
     );
   if (

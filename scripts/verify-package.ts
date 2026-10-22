@@ -16,7 +16,7 @@ try {
         declaredIssues: bundle.item.flaws.length,
         previewBytesPresent: !!bundle.result,
         limitations:
-          "Not authenticity, seller identity, trusted time or condition verification. Imported HTML was not executed or certified safe; re-export through AsShown for a regenerated viewer.",
+          "Not authenticity, seller identity, trusted time or condition verification. Imported HTML was not executed or certified safe; re-export through As-Shown for a regenerated viewer.",
       },
       null,
       2,

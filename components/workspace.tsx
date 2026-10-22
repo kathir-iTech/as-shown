@@ -343,7 +343,7 @@ export function Workspace({
         : await savePackage(bundle, kind);
       download(
         bytes,
-        `asshown-${kind}-r${item.revision}.${html ? "html" : "zip"}`,
+        `as-shown-${kind}-r${item.revision}.${html ? "html" : "zip"}`,
         html ? "text/html;charset=utf-8" : "application/zip",
       );
       onNotice(
@@ -578,7 +578,7 @@ export function Workspace({
                   go through our server to Perfect Corp.’s YouCam API. Condition
                   close-ups and buyer notes are not sent. The provider policy
                   describes USA storage and generally 30-day retention, with
-                  exceptions; clearing AsShown does not delete provider-held
+                  exceptions; clearing As-Shown does not delete provider-held
                   data.{" "}
                   <a
                     href="https://www.makeupar.com/perfectbeauty/youcam/privacy-policy-api"

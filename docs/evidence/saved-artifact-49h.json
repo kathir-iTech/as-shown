@@ -1,0 +1,17 @@
+{
+  "schema": "asshown-saved-artifact-observation/1",
+  "observedAt": "2026-10-22T17:56:18.085Z",
+  "package": "packages/asshown-production-decision.zip",
+  "sha256": "77a2bca3a1734af282d846cdaab8cb9f9228c71ef8b5160f3d393eb74f5c7803",
+  "bytes": 1675646,
+  "itemDigest": "c869df532b708dca0e95ec697494965e125fd65e7ccbb995ed363fb4a9fd7c83",
+  "resultDigest": "d5fea86402eeac4bbfaa5dcece66b43e8c80fc408c6228960db069bcdb45c899",
+  "mode": "live",
+  "sourceImages": 4,
+  "loadedOfflineImages": 6,
+  "scripts": 0,
+  "networkingDisabled": true,
+  "elapsedHours": 49.3394575,
+  "fortyEightHourObservation": "passed",
+  "limitations": "Locally declared timestamps and unsigned digests, not a trusted time or authenticity service."
+}

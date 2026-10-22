@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 export const alt =
-  "AsShown — Try it on. Look closer. A secondhand decision studio powered by YouCam.";
+  "As-Shown — Try it on. Look closer. A secondhand decision studio powered by YouCam.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export default async function Image() {
@@ -35,7 +35,7 @@ export default async function Image() {
           justifyContent: "space-between",
         }}
       >
-        <div style={{ fontSize: 30 }}>as/shown ✳</div>
+        <div style={{ fontSize: 30 }}>as-shown ✳</div>
         <div
           style={{
             display: "flex",

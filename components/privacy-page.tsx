@@ -21,7 +21,7 @@ export function PrivacyPage({ onHome }: { onHome: () => void }) {
           Seller-only exports exclude buyer notes and generated personal images.
         </p>
         <p>
-          There is no AsShown user account, checkout, advertising tracker or
+          There is no As-Shown user account, checkout, advertising tracker or
           automatic cloud photo library. Publishing a seller-only link is a
           separate explicit action. This does not mean the host or provider has
           no operational logs.
@@ -40,7 +40,7 @@ export function PrivacyPage({ onHome }: { onHome: () => void }) {
         <p>
           The provider’s policy describes USA storage, generally 30-day
           retention with exceptions, and potential facial or biometric
-          processing. Clearing AsShown cannot delete provider-held data. We
+          processing. Clearing As-Shown cannot delete provider-held data. We
           cannot guarantee immediate provider deletion.{" "}
           <a
             href="https://www.makeupar.com/perfectbeauty/youcam/privacy-policy-api"

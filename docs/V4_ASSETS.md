@@ -16,3 +16,5 @@ Source PNGs were converted to JPEG quality 92 without other visual edits. `refer
 Two intended tasks used four free units (984 to 980). Valid multipart duplicate replay, recovery and refresh all returned/resumed the same original-session task; no new creation was made for those checks. See [release evidence](RELEASE_EVIDENCE.md). The older linen demonstration and its ledger remain unchanged. Three synthetic examples are not a diverse real-user evaluation.
 
 The UI/CSS and icon are original code. Typography uses the existing self-hosted OFL fonts. No assets or source code from inspiration sites were copied. Generated imagery carries no guarantee of exclusivity or statutory copyright; do not use it to misrepresent an actual garment/person.
+
+Branding update, 22 October 2026: the current name is As-Shown. The three public ZIP viewers were re-exported with that name; their item/result digests, all image bytes and review data were checked unchanged. This changed ZIP checksums, not the recorded YouCam results. The earlier linen imagery and historical evidence remain unchanged.

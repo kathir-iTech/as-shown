@@ -1,4 +1,4 @@
-# AsShown
+# As-Shown
 
 **Try it on. Look closer.**
 
@@ -8,7 +8,11 @@ This is a limited-credit, non-commercial hackathon prototype—not a marketplace
 
 ## Try the product
 
-Website: [asshown.vercel.app](https://asshown.vercel.app) · [Source repository](https://github.com/kathir-iTech/asshown)
+Website: [as-shown.vercel.app](https://as-shown.vercel.app) · [Source repository](https://github.com/kathir-iTech/as-shown)
+
+![As-Shown studio: a YouCam style preview beside the original garment evidence](docs/images/studio-desktop.png)
+
+Previously named AsShown. The old website remains available for browser-local records saved on that origin; export there and import here to move a record. The hyphenated name does not change the archive format, consent-policy identifiers or existing storage keys. Historical evidence retains the names and URLs that were actually tested.
 
 - Explore three completed garment examples without supplying a photograph or API credential.
 - Create a seller record with a reference, front/back views and an explicit condition declaration. Every declared issue needs a linked close-up.
@@ -66,10 +70,10 @@ To test an already deployed site, set `ASSHOWN_TEST_URL` to its HTTPS origin bef
 ## Verify an exported package
 
 ```sh
-npm run verify-package -- /path/to/asshown-decision-r1.zip
+npm run verify-package -- /path/to/as-shown-decision-r1.zip
 ```
 
-The verifier checks bounded archive structure, manifest/file agreement, image headers and record/review/preview bindings. It never executes the imported HTML. Passing does **not** certify an unknown package's HTML as safe to open: import into AsShown and re-export to regenerate the script-free viewer. Digests do not establish seller identity, truthfulness, trusted time or physical condition; someone replacing both data and digests can recompute them.
+The verifier checks bounded archive structure, manifest/file agreement, image headers and record/review/preview bindings. It never executes the imported HTML. Passing does **not** certify an unknown package's HTML as safe to open: import into As-Shown and re-export to regenerate the script-free viewer. Digests do not establish seller identity, truthfulness, trusted time or physical condition; someone replacing both data and digests can recompute them.
 
 ## Architecture and privacy
 

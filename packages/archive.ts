@@ -75,9 +75,9 @@ export function staticViewer(bundle: Bundle, decision: boolean): string {
         : "";
   return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' file:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
-<title>${escape(item.title)} — AsShown saved record</title>
+<title>${escape(item.title)} — As-Shown saved record</title>
 <style>body{max-width:960px;margin:40px auto;padding:0 24px;background:#f5f2eb;color:#222f29;font:17px/1.6 system-ui}h1,h2{font-family:Georgia,serif}img{max-width:100%;max-height:650px;object-fit:contain}figure{display:inline-block;vertical-align:top;max-width:42%;margin:12px}section{border-top:1px solid #abb6aa;padding:20px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere}small{overflow-wrap:anywhere} @media(max-width:600px){figure{max-width:100%;margin:10px 0}}</style>
-<header><p>AsShown / saved ${decision ? "private buyer decision" : "seller item"} record</p><h1>${escape(item.title)}</h1><p>Revision ${item.revision} · seller-declared evidence, not independently inspected.</p><p>${escape(item.description)}</p></header>
+<header><p>As-Shown / saved ${decision ? "private buyer decision" : "seller item"} record</p><h1>${escape(item.title)}</h1><p>Revision ${item.revision} · seller-declared evidence, not independently inspected.</p><p>${escape(item.description)}</p></header>
 ${preview}<section><h2>Original source evidence</h2>${item.assets
     .filter((a) => a.role !== "preview-reference")
     .map((a) => picture(a.id))
@@ -154,7 +154,7 @@ export async function exportPackage(
 /** Inspect the central directory before starting the streaming decompressor. ZIP64/encrypted/multi-volume archives are not supported. */
 export function preflight(bytes: Uint8Array): Map<string, number> {
   if (bytes.length < 22 || bytes.length > ARCHIVE_LIMITS.compressed)
-    throw new Error("Choose an AsShown ZIP below 25 MB.");
+    throw new Error("Choose an As-Shown ZIP below 25 MB.");
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
   let end = -1;
   for (let p = bytes.length - 22; p >= Math.max(0, bytes.length - 65557); p--) {
@@ -368,7 +368,7 @@ export async function exportHtml(
     )
     .replace(
       "use the accompanying manifest and verifier",
-      "use the full AsShown archive and verifier for file agreement checks",
+      "use the full As-Shown archive and verifier for file agreement checks",
     );
   return strToU8(html);
 }

@@ -161,8 +161,7 @@ input[readonly] {
   display: inline-block;
   color: #777e67;
   padding: 0 3px;
-  font-weight: 300;
-  transform: rotate(10deg);
+  font-weight: 600;
 }
 .brand-dot {
   display: inline-block;

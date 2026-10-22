@@ -107,7 +107,7 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
         if (!found) {
           setBundle(undefined);
           setNotice(
-            "This record is not on this device. Open its AsShown package to continue.",
+            "This record is not on this device. Open its As-Shown package to continue.",
           );
           return;
         }
@@ -213,9 +213,9 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
     <div className="import-controls">
       <label className="text-button file-label">
         <FileArchive size={16} />
-        Open an AsShown package
+        Open an As-Shown package
         <input
-          aria-label="Import AsShown package"
+          aria-label="Import As-Shown package"
           type="file"
           accept=".zip"
           disabled={busy}
@@ -254,8 +254,8 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
         Skip to content
       </a>
       <header className="site-header">
-        <Link className="wordmark" aria-label="AsShown home" href="/">
-          as<span className="brand-thread">/</span>shown
+        <Link className="wordmark" aria-label="As-Shown home" href="/">
+          as<span className="brand-thread">-</span>shown
           <span className="brand-dot" aria-hidden="true">
             ✳
           </span>
@@ -441,7 +441,7 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
       </main>
       <footer className="site-footer">
         <Link className="wordmark" href="/">
-          as<span className="brand-thread">/</span>shown
+          as<span className="brand-thread">-</span>shown
         </Link>
         <p>Secondhand deserves a closer look.</p>
         <div>

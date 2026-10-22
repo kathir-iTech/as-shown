@@ -108,7 +108,7 @@ export function DecisionDesk({ bundle }: { bundle: Bundle }) {
               onClick={() =>
                 download(
                   new TextEncoder().encode(brief.message),
-                  `asshown-questions-r${bundle.item.revision}.txt`,
+                  `as-shown-questions-r${bundle.item.revision}.txt`,
                   "text/plain;charset=utf-8",
                 )
               }
