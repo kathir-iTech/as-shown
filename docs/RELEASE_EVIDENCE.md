@@ -2,6 +2,8 @@
 
 ## Naming and later verification
 
+Current release: [final technical handoff](FINAL_READINESS.md). All eleven public browser cases passed against the renamed production site in [the hosted public verification run](https://github.com/kathir-iTech/as-shown/actions/runs/39880531619), with identical assertions/timeouts, no skipped/flaky cases and no real generation. The 18-screen branding check and actual new-origin sharing/revocation/deletion check passed separately. Sanitized current proofs are [in evidence/](evidence/).
+
 The current product name is **As-Shown**, at [as-shown.vercel.app](https://as-shown.vercel.app), with source at [kathir-iTech/as-shown](https://github.com/kathir-iTech/as-shown). The dated reconstruction evidence below retains the names, origins, commits and outcomes actually observed; those are historical evidence, not current branding.
 
 The original saved artifact was successfully reopened offline at `2026-10-22T17:56:18.085Z`, after **49.339 real hours**, with the same SHA-256 (`77a2bca3a1734af282d846cdaab8cb9f9228c71ef8b5160f3d393eb74f5c7803`), six loaded photographs and zero scripts. This closes that specific elapsed-time observation, not a general durability or trusted-timestamp certification. See [the observation](evidence/saved-artifact-49h.json).

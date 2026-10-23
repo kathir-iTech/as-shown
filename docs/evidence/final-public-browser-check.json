@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-10-23T00:53:19.590Z",
+  "origin": "https://as-shown.vercel.app",
+  "runtimeCommit": "bad7d1bcce25f26ea7c07e2e0296ba28878542ab",
+  "deployment": "dpl_9kMoiW66y6GcXUnC3gpc4PZrrpSj",
+  "verificationEnvironment": "GitHub standard Ubuntu runner",
+  "workflowCommit": "752f01249c2467c5b05ae654701bb5a976407edc",
+  "workflowRun": "https://github.com/kathir-iTech/as-shown/actions/runs/39880531619",
+  "expected": 11,
+  "unexpected": 0,
+  "flaky": 0,
+  "skipped": 0,
+  "startedAt": "2026-10-23T00:51:28.287Z",
+  "durationMs": 37849.578,
+  "actualGenerationTasks": 0,
+  "description": "Eleven public browser cases. Provider success/failure/recovery cases use identified controlled responses; separate actual provider evidence remains historical, not relabelled as this run.",
+  "localPublicAttempts": "Two Windows public attempts exceeded the first workflow's 90-second overall budget and were stopped. Traces retained privately. The identical assertions/timeouts passed on the hosted runner; no claim of consistently low cross-environment latency."
+}

@@ -1,0 +1,142 @@
+{
+  "checkedAt": "2026-10-23T00:32:21.428Z",
+  "origin": "https://as-shown.vercel.app",
+  "results": [
+    {
+      "path": "/",
+      "width": 1440,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/examples",
+      "width": 1440,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/examples/linen-shirt",
+      "width": 1440,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/examples/navy-knit",
+      "width": 1440,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/examples/ivory-shirt",
+      "width": 1440,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/seller",
+      "width": 1440,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/storefront",
+      "width": 1440,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/privacy",
+      "width": 1440,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/evidence",
+      "width": 1440,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/",
+      "width": 390,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/examples",
+      "width": 390,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/examples/linen-shirt",
+      "width": 390,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/examples/navy-knit",
+      "width": 390,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/examples/ivory-shirt",
+      "width": 390,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/seller",
+      "width": 390,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/storefront",
+      "width": 390,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/privacy",
+      "width": 390,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    },
+    {
+      "path": "/evidence",
+      "width": 390,
+      "status": 200,
+      "hyphenatedTitleAndWordmark": true,
+      "horizontalOverflow": false
+    }
+  ],
+  "browserExceptions": 0,
+  "blockedGenerationAttempts": 0,
+  "health": {
+    "liveEnabled": true,
+    "durableRequestProtection": true,
+    "provider": "YouCam Clothes VTO V3",
+    "category": "upper_body",
+    "disclosureVersion": "asshown-2026-10-20",
+    "sharingEnabled": true
+  }
+}

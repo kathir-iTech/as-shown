@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-10-23T00:38:38.691Z",
+  "origin": "https://as-shown.vercel.app",
+  "actualPrivateStorePublication": true,
+  "duplicateReturnedSameRecord": true,
+  "malformedCapabilityRejected": true,
+  "invalidCapabilityRejected": true,
+  "separateBrowserRead": true,
+  "privatePreviewAndNotesExcluded": true,
+  "newRevision": true,
+  "managementRevocation": true,
+  "physicalDeletionConfirmed": true,
+  "futureReadDenied": true,
+  "newYouCamTasks": 0,
+  "fixtureCorrection": "An initial over-length invalid-token fixture correctly returned 400 rather than the expected 404. The existing publication/session were retained; both malformed input (400) and well-formed invalid capability (404) are now checked separately."
+}

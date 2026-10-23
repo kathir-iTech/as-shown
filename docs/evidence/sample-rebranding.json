@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-10-22T18:05:22.369Z",
+  "generationAttempted": false,
+  "compatibilityIdentifiersUnchanged": true,
+  "results": [
+    {
+      "package": "linen-shirt.asshown.zip",
+      "previousSha256": "3d69c18f43cc57ffe12187849e5135c477d576b65d5625f6cdc67a753b8ea120",
+      "sha256": "450a604ffa5ce7ec0733de47b399e0fa84b77164f8727dd533d4059544b48866",
+      "itemDigest": "c869df532b708dca0e95ec697494965e125fd65e7ccbb995ed363fb4a9fd7c83",
+      "resultDigest": "73935a3c307f6696e703c1660ef078d250aba176fe6de904478c84ffff3edfab",
+      "originalImagesAndReviewPreserved": true
+    },
+    {
+      "package": "navy-knit/item.asshown.zip",
+      "previousSha256": "153c65282c5c1cf5dae4af68455343a14f0eab923c8c22d4ad5a5d27f892c010",
+      "sha256": "e2a761b388dc4b6e83030f21e13e9a330a77dcb597a1cafa65a7bcd10efef60a",
+      "itemDigest": "57054f3c96884b14ba2f092de3e574c660739ad964203a870f5fbe5f122b2bc2",
+      "resultDigest": "4ee1efa3148407526c65d679aa6d3b55c69754adcc832f4517e72189a40474f2",
+      "originalImagesAndReviewPreserved": true
+    },
+    {
+      "package": "ivory-shirt/item.asshown.zip",
+      "previousSha256": "add24fbe03da3b54573dc07f147a74e523bd6521b9018a1fc574e4e32eccc9a7",
+      "sha256": "6917f96b7b6b56537ed8609482ad3e1291c0a4261e9b22c06751c8081b4bff7f",
+      "itemDigest": "f1673ff47945282183dc420bfb7ca521707bf2f72e8abd41be1f038413545454",
+      "resultDigest": "e0bf8c9d5e5a49ec30645e8d33d28630824a39de39868f5d188d6c2c5675ddc1",
+      "originalImagesAndReviewPreserved": true
+    }
+  ]
+}

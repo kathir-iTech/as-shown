@@ -14,6 +14,8 @@ Website: [as-shown.vercel.app](https://as-shown.vercel.app) · [Source repositor
 
 Previously named AsShown. The old website remains available for browser-local records saved on that origin; export there and import here to move a record. The hyphenated name does not change the archive format, consent-policy identifiers or existing storage keys. Historical evidence retains the names and URLs that were actually tested.
 
+See [the final technical handoff](docs/FINAL_READINESS.md) for the completed verification, public test run, financial boundaries and honest limitations.
+
 - Explore three completed garment examples without supplying a photograph or API credential.
 - Create a seller record with a reference, front/back views and an explicit condition declaration. Every declared issue needs a linked close-up.
 - Export a seller-only item package and open it in another browser context.
