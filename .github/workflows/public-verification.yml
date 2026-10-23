@@ -42,7 +42,7 @@ jobs:
             generationTasksSubmitted: 0,
           };
           console.log('PUBLIC_CHECK_SUMMARY=' + JSON.stringify(summary));
-          if (summary.expected !== 11 || summary.unexpected || summary.flaky || summary.skipped || summary.errorCount) {
-            throw new Error('The complete eleven-case public suite did not pass.');
+          if (summary.expected !== 22 || summary.unexpected || summary.flaky || summary.skipped || summary.errorCount) {
+            throw new Error('The complete twenty-two-case public suite did not pass.');
           }
           NODE

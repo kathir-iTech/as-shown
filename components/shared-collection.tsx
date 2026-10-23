@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { ArrowUpRight } from "lucide-react";
 import { openPackage } from "@/domain/archive-client";
@@ -24,9 +24,9 @@ export function SharedCollection({
 }) {
   const [rows, setRows] = useState<CollectionRow[]>([]);
   const [message, setMessage] = useState("Opening the seller collection…");
+  const requests = useRef(new Map<string, Promise<Bundle>>());
   useEffect(() => {
     let cancelled = false;
-    const abort = new AbortController();
     void (async () => {
       try {
         if (location.hash.length > 10000)
@@ -45,30 +45,45 @@ export function SharedCollection({
           if (cancelled) return;
           let row: CollectionRow;
           try {
-            const response = await fetch("/api/share/read", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(link),
-              signal: abort.signal,
-            });
-            if (!response.ok)
-              throw new Error(
-                "This seller copy is unavailable, expired, revoked or quota-limited.",
-              );
-            const length = Number(response.headers.get("content-length") || 0);
-            if (length > 3_500_000)
-              throw new Error("The seller copy exceeds the supported size.");
-            const bytes = new Uint8Array(await response.arrayBuffer());
-            if (bytes.length > 3_500_000)
-              throw new Error("The seller copy exceeds the supported size.");
-            const bundle = await openPackage(bytes);
-            if (
-              bundle.preview ||
-              bundle.result ||
-              bundle.review.notes ||
-              bundle.item.declaration === "not-supplied"
-            )
-              throw new Error("This is not a seller-only record.");
+            const key = link.id + ":" + link.token;
+            let request = requests.current.get(key);
+            if (!request) {
+              request = (async () => {
+                const response = await fetch("/api/share/read", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(link),
+                  signal: AbortSignal.timeout(60000),
+                });
+                if (!response.ok)
+                  throw new Error(
+                    "This seller copy is unavailable, expired, revoked or quota-limited.",
+                  );
+                const length = Number(
+                  response.headers.get("content-length") || 0,
+                );
+                if (length > 3_500_000)
+                  throw new Error(
+                    "The seller copy exceeds the supported size.",
+                  );
+                const bytes = new Uint8Array(await response.arrayBuffer());
+                if (bytes.length > 3_500_000)
+                  throw new Error(
+                    "The seller copy exceeds the supported size.",
+                  );
+                const bundle = await openPackage(bytes);
+                if (
+                  bundle.preview ||
+                  bundle.result ||
+                  bundle.review.notes ||
+                  bundle.item.declaration === "not-supplied"
+                )
+                  throw new Error("This is not a seller-only record.");
+                return bundle;
+              })();
+              requests.current.set(key, request);
+            }
+            const bundle = await request;
             row = { id: link.id, bundle };
           } catch (e) {
             row = {
@@ -93,7 +108,6 @@ export function SharedCollection({
     })();
     return () => {
       cancelled = true;
-      abort.abort();
     };
   }, []);
   return (

@@ -918,6 +918,19 @@ dialog::backdrop {
 .publisher-panel label > input[readonly] {
   font-size: 14px;
 }
+.closeup-grid label.text-button {
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  gap: 6px;
+}
+.closeup-grid label.text-button > input[type="file"] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
 .comparison-topline {
   display: none;
 }
@@ -943,11 +956,9 @@ dialog::backdrop {
 }
 @keyframes fit-enter {
   from {
-    opacity: 0;
     transform: translateY(16px);
   }
   to {
-    opacity: 1;
     transform: none;
   }
 }
