@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowDown,
@@ -28,14 +28,14 @@ export function useRack() {
   const [rack, setRack] = useState<RackEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const readVersion = useRef(0);
   useEffect(() => {
     let cancelled = false;
-    let revision = 0;
     const load = () => {
-      const current = ++revision;
+      const current = ++readVersion.current;
       void listRack()
         .then((rows) => {
-          if (!cancelled && current === revision) {
+          if (!cancelled && current === readVersion.current) {
             setRack(rows);
             setLoading(false);
             setError("");
@@ -57,7 +57,17 @@ export function useRack() {
       window.removeEventListener("asshown:rack", load);
     };
   }, []);
-  return { rack, loading, error };
+  function patchMeta(id: string, changes: Partial<RackMeta>) {
+    ++readVersion.current;
+    setRack((rows) =>
+      rows.map((row) =>
+        row.bundle.item.itemId === id
+          ? { ...row, meta: { ...row.meta, ...changes } }
+          : row,
+      ),
+    );
+  }
+  return { rack, loading, error, patchMeta };
 }
 function thumbnail(bundle: Bundle) {
   return bundle.item.assets.find((a) => a.role === "reference")!;
@@ -109,7 +119,7 @@ export function MyRack({
   onCreate: () => void;
   onRemoved: (id: string) => void;
 }) {
-  const { rack, loading, error } = useRack();
+  const { rack, loading, error, patchMeta } = useRack();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [status, setStatus] = useState("all");
@@ -129,13 +139,12 @@ export function MyRack({
       bundle.item.title.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
   );
   async function update(entry: RackEntry, changes: Partial<RackMeta>) {
+    patchMeta(entry.bundle.item.itemId, changes);
     try {
-      await saveRackMeta(entry.bundle.item.itemId, {
-        ...entry.meta,
-        ...changes,
-      });
+      await saveRackMeta(entry.bundle.item.itemId, changes);
     } catch {
       setNotice("The change could not be saved on this device.");
+      window.dispatchEvent(new Event("asshown:rack"));
     }
   }
   async function move(id: string, direction: -1 | 1) {
@@ -149,7 +158,7 @@ export function MyRack({
     try {
       await Promise.all(
         ordered.map((entry, order) =>
-          saveRackMeta(entry.bundle.item.itemId, { ...entry.meta, order }),
+          saveRackMeta(entry.bundle.item.itemId, { order }),
         ),
       );
     } catch {

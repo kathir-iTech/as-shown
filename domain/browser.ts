@@ -367,11 +367,36 @@ export async function getRackRecord(id: string): Promise<Bundle | undefined> {
 export async function addToRack(bundle: Bundle): Promise<void> {
   await saveDraft(bundle);
 }
-export async function saveRackMeta(id: string, meta: RackMeta): Promise<void> {
-  await putLocal("rack:" + id, {
-    ...meta,
-    collection: meta.collection.trim().slice(0, 60),
-  });
+export async function saveRackMeta(
+  id: string,
+  changes: Partial<RackMeta>,
+): Promise<void> {
+  // Patch within one transaction: rapid collection edits must not overwrite a
+  // shortlist choice from an earlier render or another tab.
+  const db = await openDb();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction("records", "readwrite");
+      const store = tx.objectStore("records");
+      const read = store.get("rack:" + id);
+      read.onsuccess = () => {
+        const next = {
+          ...defaultRackMeta(),
+          ...read.result,
+          ...changes,
+        } as RackMeta;
+        store.put(
+          { ...next, collection: next.collection.trim().slice(0, 60) },
+          "rack:" + id,
+        );
+      };
+      tx.oncomplete = () => resolve();
+      tx.onabort = tx.onerror = () =>
+        reject(new Error("The rack preference could not be saved."));
+    });
+  } finally {
+    db.close();
+  }
   window.dispatchEvent(new Event("asshown:rack"));
 }
 export async function rememberLook(

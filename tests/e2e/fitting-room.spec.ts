@@ -278,6 +278,7 @@ test("bad uploads never enter the rack or start transmission; reduced-motion hom
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
+  await expect(page.getByLabel("Garment photo", { exact: true })).toBeEnabled();
   await page.getByLabel("Garment photo", { exact: true }).setInputFiles({
     name: "not-an-image.png",
     mimeType: "image/png",
