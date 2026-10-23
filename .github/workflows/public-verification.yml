@@ -1,0 +1,48 @@
+name: Public site verification
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: public-site-verification
+  cancel-in-progress: false
+jobs:
+  public-browser-checks:
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      ASSHOWN_TEST_URL: https://as-shown.vercel.app
+      PLAYWRIGHT_JSON_OUTPUT_FILE: public-results.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: "24"
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - name: Test the public site without live generation
+        run: npm run test:e2e -- --reporter=list,json
+      - name: Emit a credential-free result summary
+        if: always()
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          if (!fs.existsSync('public-results.json')) {
+            throw new Error('Browser results were not produced; no pass claimed.');
+          }
+          const report = JSON.parse(fs.readFileSync('public-results.json', 'utf8'));
+          const summary = {
+            origin: process.env.ASSHOWN_TEST_URL,
+            ...report.stats,
+            errorCount: report.errors.length,
+            generationTasksSubmitted: 0,
+          };
+          console.log('PUBLIC_CHECK_SUMMARY=' + JSON.stringify(summary));
+          if (summary.expected !== 11 || summary.unexpected || summary.flaky || summary.skipped || summary.errorCount) {
+            throw new Error('The complete eleven-case public suite did not pass.');
+          }
+          NODE
