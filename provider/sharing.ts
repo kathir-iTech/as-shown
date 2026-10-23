@@ -112,6 +112,7 @@ return {'ready', value}
 /** Publication makes an explicitly new revision with metadata-free photo copies. */
 export async function publicationCopy(bundle: Bundle): Promise<Bundle> {
   if (
+    bundle.item.declaration === "not-supplied" ||
     bundle.preview ||
     bundle.result ||
     bundle.review.notes ||
@@ -158,7 +159,7 @@ export async function publicationCopy(bundle: Bundle): Promise<Bundle> {
   const { contentDigest: _digest, ...content } = bundle.item;
   const item = await sealItem({
     ...content,
-    schemaVersion: 2,
+    schemaVersion: bundle.item.schemaVersion === 3 ? 3 : 2,
     revision: bundle.item.revision + 1,
     createdAt: new Date().toISOString(),
     assets,

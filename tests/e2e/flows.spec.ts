@@ -226,7 +226,7 @@ test("desktop and mobile core screens have no serious/critical automated accessi
     await page.setViewportSize(viewport);
     await page.goto("/");
     await expect(
-      page.getByRole("heading", { name: /Try it on/ }),
+      page.getByRole("heading", { name: /Try on your/ }),
     ).toBeVisible();
     await expect(page).toHaveTitle(/As-Shown/);
     expect(
@@ -274,11 +274,9 @@ test("interactive lenses, source inspector, question brief and revision diff wor
       generations++;
   });
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Focus on the declared cuff detail" })
-    .click();
+  await page.getByRole("button", { name: "The detail", exact: false }).click();
   await expect(
-    page.getByText("A little wear. A question worth asking.", { exact: true }),
+    page.getByText("Original cuff detail · synthetic demo", { exact: true }),
   ).toBeVisible();
   await page
     .getByRole("button", { name: "Explore the completed example" })

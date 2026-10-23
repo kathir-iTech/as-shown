@@ -77,7 +77,7 @@ export function staticViewer(bundle: Bundle, decision: boolean): string {
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' file:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <title>${escape(item.title)} — As-Shown saved record</title>
 <style>body{max-width:960px;margin:40px auto;padding:0 24px;background:#f5f2eb;color:#222f29;font:17px/1.6 system-ui}h1,h2{font-family:Georgia,serif}img{max-width:100%;max-height:650px;object-fit:contain}figure{display:inline-block;vertical-align:top;max-width:42%;margin:12px}section{border-top:1px solid #abb6aa;padding:20px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere}small{overflow-wrap:anywhere} @media(max-width:600px){figure{max-width:100%;margin:10px 0}}</style>
-<header><p>As-Shown / saved ${decision ? "private buyer decision" : "seller item"} record</p><h1>${escape(item.title)}</h1><p>Revision ${item.revision} · seller-declared evidence, not independently inspected.</p><p>${escape(item.description)}</p></header>
+<header><p>As-Shown / saved ${decision ? "private buyer decision" : item.declaration === "not-supplied" ? "garment reference" : "seller item"} record</p><h1>${escape(item.title)}</h1><p>Revision ${item.revision} · ${item.declaration === "not-supplied" ? "Shopper-supplied reference. Condition information not supplied." : "Seller-declared evidence, not independently inspected."}</p><p>${escape(item.description)}</p></header>
 ${preview}<section><h2>Original source evidence</h2>${item.assets
     .filter((a) => a.role !== "preview-reference")
     .map((a) => picture(a.id))
@@ -93,7 +93,7 @@ ${
         .join("")}</section>`
     : ""
 }
-<section><h2>Declared condition</h2>${item.declaration === "no-known-flaws" ? "<p>Seller reports no known flaws; not independently inspected.</p>" : item.flaws.map((f) => `<article><h3>${escape(f.description)}</h3><p>Source: ${escape(item.assets.find((a) => a.id === f.sourceAssetId)!.description)}</p>${f.closeupAssetIds.map(picture).join("")}${decision ? `<p>Buyer preference: ${escape(bundle.review.decisions[f.id])}</p>` : ""}</article>`).join("")}</section>
+<section><h2>Declared condition</h2>${item.declaration === "not-supplied" ? "<p>Condition information not supplied. Ask for original front, back and condition close-up photos, disclosures and measurements. A generated look is not condition evidence.</p>" : item.declaration === "no-known-flaws" ? "<p>Seller reports no known flaws; not independently inspected.</p>" : item.flaws.map((f) => `<article><h3>${escape(f.description)}</h3><p>Source: ${escape(item.assets.find((a) => a.id === f.sourceAssetId)!.description)}</p>${f.closeupAssetIds.map(picture).join("")}${decision ? `<p>Buyer preference: ${escape(bundle.review.decisions[f.id])}</p>` : ""}</article>`).join("")}</section>
 ${decision ? `<section><h2>Buyer notes</h2><pre>${escape(bundle.review.notes || "No notes recorded.")}</pre><p>Unreviewed issues remain unanswered. No message or purchase was sent.</p></section>` : ""}
 <footer><p>Offline snapshot. Extract the complete ZIP before opening this viewer. No external network dependencies. This HTML viewer does not verify itself: use the accompanying manifest and verifier.</p><p>Digests establish file agreement, not seller identity, honesty, trusted time or physical condition.</p><small>Item digest: ${item.contentDigest}<br>Disclosure: ${DISCLOSURE_VERSION}</small></footer></html>`;
 }

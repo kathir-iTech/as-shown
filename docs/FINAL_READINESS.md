@@ -1,5 +1,9 @@
 # As-Shown — technical handoff
 
+## Upload-first reconstruction in progress
+
+The owner approved a new product reconstruction after the release described below. The dated evidence in this document covers the previous runtime, not the new build. See `docs/FITTING_ROOM.md` for the new workflow, boundaries and verification status. Do not treat the historical signoff below as verification of new code.
+
 23 October 2026. The bounded, non-commercial hackathon build is implemented, deployed and technically verified. No known blocking implementation task remains for this release. The owner's remaining deliverables are the video and final Devpost submission.
 
 - Application: https://as-shown.vercel.app

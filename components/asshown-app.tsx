@@ -14,7 +14,13 @@ import { type Bundle, canReusePreview, verifyBundle } from "@/domain/model";
 import { revisionChanges } from "@/domain/decision";
 import { ARCHIVE_LIMITS } from "@/packages/archive";
 import { openPackage } from "@/domain/archive-client";
-import { clearLocal, getLocal, saveDraft } from "@/domain/browser";
+import {
+  clearLocal,
+  getLocal,
+  saveDraft,
+  addToRack,
+  getRackRecord,
+} from "@/domain/browser";
 import { Editor } from "./editor";
 import { Workspace } from "./workspace";
 import { StudioLanding } from "./studio-landing";
@@ -22,6 +28,8 @@ import { PrivacyPage } from "./privacy-page";
 import { Catalogue, EXAMPLES } from "./catalogue";
 import { EvidencePage } from "./evidence-page";
 import { SharedRecord } from "./shared-record";
+import { MyRack, RackRail } from "./my-rack";
+import { SharedCollection } from "./shared-collection";
 
 export function AsShownApp({ children }: { children?: ReactNode }) {
   const pathname = usePathname();
@@ -34,6 +42,8 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
   const [draft, setDraft] = useState(false);
   const [openLive, setOpenLive] = useState(false);
   const [opening, setOpening] = useState(false);
+  const [sessionShopper, setSessionShopper] = useState<Uint8Array>();
+  const sessionRecords = useRef(new Map<string, Bundle>());
   const main = useRef<HTMLElement>(null);
   const clearDialog = useRef<HTMLDialogElement>(null);
   const actionLock = useRef(false);
@@ -45,14 +55,20 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
         ? "evidence"
         : pathname === "/storefront"
           ? "storefront"
-          : pathname === "/examples"
-            ? "examples"
-            : pathname.startsWith("/seller")
-              ? "edit"
-              : pathname.startsWith("/inspect/") ||
-                  pathname.startsWith("/examples/")
-                ? "work"
-                : "home";
+          : pathname === "/rack"
+            ? "rack"
+            : pathname === "/try"
+              ? "try"
+              : pathname === "/collection"
+                ? "collection"
+                : pathname === "/examples"
+                  ? "examples"
+                  : pathname.startsWith("/seller")
+                    ? "edit"
+                    : pathname.startsWith("/inspect/") ||
+                        pathname.startsWith("/examples/")
+                      ? "work"
+                      : "home";
   const editing = pathname.startsWith("/seller/");
   useEffect(() => {
     void getLocal<Bundle>("draft")
@@ -68,6 +84,7 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
   }, [pathname]);
   useEffect(() => {
     if (!bundle) return;
+    sessionRecords.current.set(bundle.item.itemId, bundle);
     const timer = setTimeout(() => {
       void saveDraft(bundle)
         .then(() => setDraft(true))
@@ -102,7 +119,7 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
                 throw new Error("This demonstration could not be loaded.");
               return openPackage(new Uint8Array(await r.arrayBuffer()));
             })
-          : await getLocal<Bundle>("record:" + id);
+          : await getRackRecord(id);
         if (cancelled) return;
         if (!found) {
           setBundle(undefined);
@@ -166,6 +183,25 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
     setNotice("");
     navigate("/seller");
   }
+  function openRecord(next: Bundle) {
+    const remembered = sessionRecords.current.get(next.item.itemId);
+    setBundle(
+      remembered?.item.contentDigest === next.item.contentDigest
+        ? remembered
+        : next,
+    );
+    setHistorical(undefined);
+    setOpenLive(next.item.declaration === "not-supplied" && !next.result);
+    setNotice("");
+    navigate("/inspect/" + encodeURIComponent(next.item.itemId));
+  }
+  async function quickReady(next: Bundle) {
+    await addToRack(next);
+    setBundle(next);
+    setHistorical(undefined);
+    setOpenLive(true);
+    navigate("/inspect/" + encodeURIComponent(next.item.itemId));
+  }
   function saved(next: Bundle) {
     setHistorical(editing ? bundle : undefined);
     setBundle(next);
@@ -184,15 +220,16 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
   }
   async function restore() {
     await perform(async () => {
-      const found = await getLocal<Bundle>("draft");
-      if (!found) throw new Error("No saved source draft was found.");
+      const source = await getLocal<Bundle>("draft");
+      if (!source) throw new Error("No saved source draft was found.");
+      const found = (await getRackRecord(source.item.itemId)) || source;
       await verifyBundle(found);
       setBundle(found);
       setHistorical(undefined);
       setOpenLive(false);
       navigate("/inspect/" + encodeURIComponent(found.item.itemId));
       setNotice(
-        "Device-local record restored. Personal input photos and completed previews are kept in your exports, not source drafts.",
+        "Device-local record restored. Personal input photos are never saved; generated looks return only if you chose to keep them on this device.",
       );
     });
   }
@@ -203,6 +240,8 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
       setBundle(undefined);
       setHistorical(undefined);
       setDraft(false);
+      setSessionShopper(undefined);
+      sessionRecords.current.clear();
       navigate("/");
       setNotice(
         "Device-local records cleared. Downloads and provider-held data are not deleted.",
@@ -262,13 +301,13 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
         </Link>
         <nav aria-label="Main navigation">
           <Link href="/" aria-current={screen === "home" ? "page" : undefined}>
-            The studio
+            Fitting room
           </Link>
           <Link
-            href="/examples"
-            aria-current={screen === "examples" ? "page" : undefined}
+            href="/rack"
+            aria-current={screen === "rack" ? "page" : undefined}
           >
-            The collection
+            My rack
           </Link>
           {bundle && (
             <Link
@@ -278,13 +317,13 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
               Current record
             </Link>
           )}
-          <Link href="/privacy">Privacy & limits</Link>
+          <Link href="/examples">Demos</Link>
           <button
             onClick={() => clearDialog.current?.showModal()}
             aria-label="Clear local data"
           >
             <RotateCcw size={14} />
-            <span className="clear-label">Clear local data</span>
+            <span className="clear-label">Clear device</span>
           </button>
         </nav>
         <button className="button nav-create" disabled={busy} onClick={newItem}>
@@ -336,15 +375,28 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
             </div>
           </section>
         )}
-        {screen === "home" && pathname === "/" && (
+        {((screen === "home" && pathname === "/") || screen === "try") && (
           <StudioLanding
             busy={busy}
             onExplore={() => void sample()}
             onLive={() => void sample(true)}
             onCreate={newItem}
+            onReady={quickReady}
+            onExample={(slug) => void sample(false, slug)}
             importControl={importControl}
           />
         )}
+        {screen === "rack" && (
+          <MyRack
+            onOpen={openRecord}
+            onCreate={newItem}
+            onRemoved={(id) => {
+              sessionRecords.current.delete(id);
+              if (bundle?.item.itemId === id) setBundle(undefined);
+            }}
+          />
+        )}
+        {screen === "collection" && <SharedCollection onOpen={openRecord} />}
         {(screen === "examples" || screen === "storefront") && (
           <Catalogue
             storefront={screen === "storefront"}
@@ -367,60 +419,68 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
           />
         )}
         {screen === "work" && bundle && !opening && (
-          <>
-            {historical && (
-              <section className="revision-diff" aria-label="Revision changes">
-                <span className="eyebrow">
-                  REVISION {historical.item.revision} → {bundle.item.revision}
-                </span>
-                <h2>What changed in this record</h2>
-                <ul>
-                  {revisionChanges(historical.item, bundle.item).map(
-                    (change, i) => (
-                      <li key={i}>{change}</li>
-                    ),
-                  )}
-                </ul>
-                <p>Review the revised evidence before deciding again.</p>
-                {historical.preview &&
-                  historical.result &&
-                  canReusePreview(bundle.item, historical.preview) && (
-                    <button
-                      className="button secondary"
-                      onClick={() => {
-                        setBundle({
-                          ...bundle,
-                          preview: {
-                            ...historical.preview!,
-                            itemDigest: bundle.item.contentDigest,
-                            reusedFromItemDigest:
-                              historical.preview!.itemDigest,
-                          },
-                          result: historical.result,
-                        });
-                        setHistorical(undefined);
-                        setNotice(
-                          "Earlier style image reused for the unchanged reference. No new generation or unit use.",
-                        );
-                      }}
-                    >
-                      Reuse earlier style image
-                    </button>
-                  )}
-              </section>
-            )}
-            <Workspace
-              key={bundle.item.contentDigest}
-              bundle={bundle}
-              onChange={setBundle}
-              onEdit={() =>
-                navigate("/seller/" + encodeURIComponent(bundle.item.itemId))
-              }
-              onHome={() => navigate("/")}
-              onNotice={setNotice}
-              openLive={openLive}
-            />
-          </>
+          <div className="fitting-layout">
+            <RackRail current={bundle.item.itemId} onOpen={openRecord} />
+            <div className="fitting-content">
+              {historical && (
+                <section
+                  className="revision-diff"
+                  aria-label="Revision changes"
+                >
+                  <span className="eyebrow">
+                    REVISION {historical.item.revision} → {bundle.item.revision}
+                  </span>
+                  <h2>What changed in this record</h2>
+                  <ul>
+                    {revisionChanges(historical.item, bundle.item).map(
+                      (change, i) => (
+                        <li key={i}>{change}</li>
+                      ),
+                    )}
+                  </ul>
+                  <p>Review the revised evidence before deciding again.</p>
+                  {historical.preview &&
+                    historical.result &&
+                    canReusePreview(bundle.item, historical.preview) && (
+                      <button
+                        className="button secondary"
+                        onClick={() => {
+                          setBundle({
+                            ...bundle,
+                            preview: {
+                              ...historical.preview!,
+                              itemDigest: bundle.item.contentDigest,
+                              reusedFromItemDigest:
+                                historical.preview!.itemDigest,
+                            },
+                            result: historical.result,
+                          });
+                          setHistorical(undefined);
+                          setNotice(
+                            "Earlier style image reused for the unchanged reference. No new generation or unit use.",
+                          );
+                        }}
+                      >
+                        Reuse earlier style image
+                      </button>
+                    )}
+                </section>
+              )}
+              <Workspace
+                key={bundle.item.contentDigest}
+                bundle={bundle}
+                onChange={setBundle}
+                onEdit={() =>
+                  navigate("/seller/" + encodeURIComponent(bundle.item.itemId))
+                }
+                onHome={() => navigate("/")}
+                onNotice={setNotice}
+                openLive={openLive}
+                initialShopper={sessionShopper}
+                onShopperChange={setSessionShopper}
+              />
+            </div>
+          </div>
         )}
         {(screen === "work" || editing) && !bundle && !opening && (
           <section className="empty-record">
@@ -443,14 +503,14 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
         <Link className="wordmark" href="/">
           as<span className="brand-thread">-</span>shown
         </Link>
-        <p>Secondhand deserves a closer look.</p>
+        <p>The look isn’t the whole story.</p>
         <div>
           <span>Powered by YouCam Clothes VTO V3</span>
           <Link href="/storefront">
             Demo storefront <ArrowUpRight size={14} />
           </Link>
           <Link href="/evidence">How it works & release evidence</Link>
-          <Link href="/privacy">Privacy, provenance & limitations</Link>
+          <Link href="/privacy">Privacy & limits</Link>
         </div>
       </footer>
       <dialog

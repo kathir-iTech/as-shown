@@ -3,6 +3,35 @@ import { z } from "zod";
 export const DISCLOSURE_VERSION = "asshown-2026-10-20";
 export const MAX_ASSET_BYTES = 12_000_000;
 export const MAX_INPUT_BYTES = 1_200_000;
+export const categorySchema = z.enum([
+  "upper_body",
+  "lower_body",
+  "full_body",
+  "shoes",
+]);
+export type Category = z.infer<typeof categorySchema>;
+export const CATEGORY_LABELS: Record<Category, string> = {
+  upper_body: "Tops & layers",
+  lower_body: "Bottoms",
+  full_body: "Dresses & full looks",
+  shoes: "Shoes",
+};
+export const CATEGORY_GUIDANCE: Record<Category, string> = {
+  upper_body:
+    "One adult, facing forward. Keep your torso visible and arms away from your clothing.",
+  lower_body:
+    "Use a full-length adult photo with both legs and feet visible. Use a reference showing one pair of trousers or one skirt.",
+  full_body:
+    "Use a full-length adult photo, head to feet, with arms away from the body. Show the whole dress or outfit in the reference.",
+  shoes:
+    "Use a full-length adult photo with both feet clearly visible. Show one matching pair of shoes in the reference.",
+};
+const versionSchema = z.union([z.literal(1), z.literal(2), z.literal(3)]);
+const declarationSchema = z.enum([
+  "declared-flaws",
+  "no-known-flaws",
+  "not-supplied",
+]);
 const id = z.string().regex(/^[a-zA-Z0-9-]{1,80}$/);
 export const digestSchema = z.string().regex(/^[a-f0-9]{64}$/);
 export const assetSchema = z
@@ -21,7 +50,7 @@ export const assetSchema = z
     byteLength: z.number().int().positive().max(MAX_ASSET_BYTES),
     digest: digestSchema,
     description: z.string().min(1).max(240),
-    origin: z.enum(["seller-upload", "synthetic-demo"]),
+    origin: z.enum(["seller-upload", "synthetic-demo", "shopper-upload"]),
     transformations: z.array(z.string().max(200)).max(5),
     sourceDigest: digestSchema.optional(),
   })
@@ -45,15 +74,15 @@ export const flawSchema = z
   .strict();
 export const itemSchema = z
   .object({
-    schemaVersion: z.union([z.literal(1), z.literal(2)]),
+    schemaVersion: versionSchema,
     itemId: id,
     revision: z.number().int().min(1).max(10000),
     title: z.string().trim().min(1).max(120),
     description: z.string().max(1500),
-    category: z.literal("upper_body"),
+    category: categorySchema,
     createdAt: z.iso.datetime(),
-    declaration: z.enum(["declared-flaws", "no-known-flaws"]),
-    assets: z.array(assetSchema).min(3).max(20),
+    declaration: declarationSchema,
+    assets: z.array(assetSchema).min(1).max(20),
     flaws: z.array(flawSchema).max(12),
     contentDigest: digestSchema,
   })
@@ -64,13 +93,27 @@ export const itemSchema = z
     const ids = new Set(item.assets.map((a) => a.id));
     if (ids.size !== item.assets.length)
       issue("Asset identifiers must be unique.");
-    for (const role of ["reference", "front", "back"]) {
+    if (
+      item.schemaVersion !== 3 &&
+      (item.category !== "upper_body" || item.declaration === "not-supplied")
+    )
+      issue("Quick Try and additional categories require a version 3 record.");
+    const quick = item.declaration === "not-supplied";
+    if (
+      quick &&
+      (item.flaws.length ||
+        item.assets.some(
+          (a) => !["reference", "preview-reference"].includes(a.role),
+        ))
+    )
+      issue("A Quick Try cannot claim seller condition evidence.");
+    for (const role of quick ? ["reference"] : ["reference", "front", "back"]) {
       if (item.assets.filter((a) => a.role === role).length !== 1)
         issue(`Add exactly one ${role} photo.`);
     }
     const prepared = item.assets.filter((a) => a.role === "preview-reference");
-    if (prepared.length > 1 || (prepared.length && item.schemaVersion !== 2))
-      issue("Prepared preview inputs require a version 2 record.");
+    if (prepared.length > 1 || (prepared.length && item.schemaVersion === 1))
+      issue("Prepared preview inputs require a version 2 or 3 record.");
     if (
       prepared.some(
         (a) =>
@@ -145,6 +188,7 @@ export const previewSchema = z
     mime: z.enum(["image/jpeg", "image/png"]),
     disclosureVersion: z.literal(DISCLOSURE_VERSION),
     reusedFromItemDigest: digestSchema.optional(),
+    category: categorySchema.optional(),
   })
   .strict();
 export type Preview = z.infer<typeof previewSchema>;
@@ -202,7 +246,10 @@ export function referenceOf(item: Item): Asset {
   );
 }
 export function canReusePreview(item: Item, preview: Preview): boolean {
-  return referenceOf(item).digest === preview.referenceDigest;
+  return (
+    referenceOf(item).digest === preview.referenceDigest &&
+    item.category === (preview.category || "upper_body")
+  );
 }
 
 const admissionAsset = assetSchema.omit({
@@ -212,13 +259,13 @@ const admissionAsset = assetSchema.omit({
 });
 export const admissionSchema = z
   .object({
-    schemaVersion: z.union([z.literal(1), z.literal(2)]),
+    schemaVersion: versionSchema,
     itemId: id,
     revision: z.number().int().positive(),
-    category: z.literal("upper_body"),
+    category: categorySchema,
     contentDigest: digestSchema,
-    declaration: z.enum(["declared-flaws", "no-known-flaws"]),
-    assets: z.array(admissionAsset).min(3).max(20),
+    declaration: declarationSchema,
+    assets: z.array(admissionAsset).min(1).max(20),
     flaws: z
       .array(
         z
@@ -237,13 +284,27 @@ export const admissionSchema = z
       ctx.addIssue({ code: "custom", message });
     if (new Set(item.assets.map((a) => a.id)).size !== item.assets.length)
       issue("Asset identifiers must be unique.");
-    for (const role of ["reference", "front", "back"])
+    if (
+      item.schemaVersion !== 3 &&
+      (item.category !== "upper_body" || item.declaration === "not-supplied")
+    )
+      issue("Quick Try and additional categories require a version 3 record.");
+    const quick = item.declaration === "not-supplied";
+    if (
+      quick &&
+      (item.flaws.length ||
+        item.assets.some(
+          (a) => !["reference", "preview-reference"].includes(a.role),
+        ))
+    )
+      issue("Quick Try cannot claim seller condition evidence.");
+    for (const role of quick ? ["reference"] : ["reference", "front", "back"])
       if (item.assets.filter((a) => a.role === role).length !== 1)
         issue("Required source view is missing or ambiguous.");
     const prepared = item.assets.filter((a) => a.role === "preview-reference");
     if (
       prepared.length > 1 ||
-      (prepared.length && item.schemaVersion !== 2) ||
+      (prepared.length && item.schemaVersion === 1) ||
       prepared.some(
         (a) =>
           a.sourceDigest !==

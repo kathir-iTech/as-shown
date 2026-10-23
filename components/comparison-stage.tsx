@@ -9,11 +9,17 @@ export function ComparisonStage({
   activeFlaw,
   onInspect,
   onPreview,
+  shopper,
+  processing = false,
+  stage,
 }: {
   bundle: Bundle;
   activeFlaw?: Flaw;
   onInspect: (flaw?: Flaw) => void;
   onPreview: () => void;
+  shopper?: Uint8Array;
+  processing?: boolean;
+  stage?: string;
 }) {
   const [sourceRole, setSourceRole] = useState("front");
   const [scale, setScale] = useState(1);
@@ -22,7 +28,8 @@ export function ComparisonStage({
   const [fitWidth, setFitWidth] = useState(0);
   const source =
     bundle.item.assets.find((a) => a.id === activeFlaw?.sourceAssetId) ||
-    bundle.item.assets.find((a) => a.role === sourceRole)!;
+    bundle.item.assets.find((a) => a.role === sourceRole) ||
+    bundle.item.assets.find((a) => a.role === "reference")!;
   const closeups =
     activeFlaw?.closeupAssetIds.map((id) =>
       bundle.item.assets.find((a) => a.id === id)!,
@@ -48,7 +55,7 @@ export function ComparisonStage({
       : "Recorded YouCam example";
   return (
     <section
-      className="comparison-stage"
+      className={"comparison-stage " + (processing ? "is-processing" : "")}
       aria-label="Style and original condition comparison"
     >
       <div className="comparison-topline">
@@ -65,38 +72,82 @@ export function ComparisonStage({
       >
         <article className="style-pane">
           <header>
-            <span className="eyebrow">01 / HOW IT COULD LOOK</span>
+            <span className="eyebrow">The look</span>
             <span className="pill">
               {bundle.preview ? previewMode : "Your preview"}
             </span>
           </header>
-          <div className="comparison-image style-image">
-            <Photo
-              bytes={
-                bundle.result ||
-                bundle.assets[
-                  bundle.item.assets.find((a) => a.role === "reference")!.id
-                ]
-              }
-              mime={bundle.preview?.mime}
-              alt={
-                bundle.result
-                  ? "YouCam-generated style preview, not evidence of fit or garment condition"
-                  : "Original reference garment; a personal preview has not been generated"
-              }
-            />
+          <div className="comparison-image style-image" aria-busy={processing}>
+            {bundle.result || shopper ? (
+              <Photo
+                bytes={
+                  bundle.result ||
+                  shopper ||
+                  bundle.assets[
+                    bundle.item.assets.find((a) => a.role === "reference")!.id
+                  ]
+                }
+                mime={bundle.preview?.mime}
+                alt={
+                  bundle.result
+                    ? "YouCam-generated style preview, not evidence of fit or garment condition"
+                    : shopper
+                      ? "Your locally prepared photo; no generated result yet"
+                      : "Original reference garment; a personal preview has not been generated"
+                }
+              />
+            ) : (
+              <div className="fitting-empty">
+                <svg
+                  viewBox="0 0 180 310"
+                  width="180"
+                  height="310"
+                  aria-hidden="true"
+                >
+                  <circle cx="90" cy="35" r="25" />
+                  <path d="M60 78q30-12 60 0l24 83q3 15-8 18t-15-12l-14-47 8 75-3 99q-1 12-12 12t-12-12l2-82-2 82q-1 12-12 12t-12-12l-3-99 8-75-14 47q-4 15-15 12t-8-18z" />
+                </svg>
+                <strong>Your photo goes here.</strong>
+                <span>The original piece stays beside you.</span>
+              </div>
+            )}
             <span className="persistent-image-label">
               {bundle.result
                 ? "AI STYLE PREVIEW · YOUCAM"
-                : "GARMENT REFERENCE · PREVIEW NOT GENERATED"}
+                : shopper
+                  ? "YOUR PHOTO · NOT A GENERATED RESULT"
+                  : "NO PERSONAL PREVIEW YET"}
             </span>
-            {!bundle.result && (
+            {!bundle.result && !shopper && (
               <button
                 className="button primary preview-on-image"
                 onClick={onPreview}
               >
-                See the style on me <ArrowUpRight size={17} />
+                Add your photo <ArrowUpRight size={17} />
               </button>
+            )}
+            {processing && (
+              <div className="processing-curtain" role="status">
+                <span className="processing-orbit" aria-hidden="true" />
+                <strong>
+                  {stage === "uploading"
+                    ? "Sending your approved images"
+                    : "YouCam is creating the look"}
+                </strong>
+                <p>
+                  One submitted request. We’ll show the actual result when it’s
+                  ready.
+                </p>
+                <div className="task-steps">
+                  <span className="done">Approved</span>
+                  <span className={stage === "running" ? "done" : "current"}>
+                    Sent
+                  </span>
+                  <span className={stage === "running" ? "current" : ""}>
+                    Processing
+                  </span>
+                </div>
+              </div>
             )}
           </div>
           <p className="comparison-caption">
@@ -106,28 +157,36 @@ export function ComparisonStage({
         </article>
         <article className="evidence-pane">
           <header>
-            <span className="eyebrow">02 / WHAT THE SELLER SHOWS</span>
+            <span className="eyebrow">
+              {bundle.item.declaration === "not-supplied"
+                ? "Your original reference"
+                : "The seller’s photographs"}
+            </span>
             <span className="pill outline">Original source photo</span>
           </header>
           <div className="source-controls">
             <div className="view-tabs" aria-label="Choose original evidence">
-              {(["reference", "front", "back"] as const).map((role) => (
-                <button
-                  key={role}
-                  aria-pressed={source.role === role}
-                  onClick={() => {
-                    setSourceRole(role);
-                    setScale(1);
-                    if (activeFlaw) onInspect(undefined);
-                  }}
-                >
-                  {role === "reference"
-                    ? "Reference"
-                    : role === "front"
-                      ? "Front"
-                      : "Back"}
-                </button>
-              ))}
+              {(["reference", "front", "back"] as const)
+                .filter((role) =>
+                  bundle.item.assets.some((a) => a.role === role),
+                )
+                .map((role) => (
+                  <button
+                    key={role}
+                    aria-pressed={source.role === role}
+                    onClick={() => {
+                      setSourceRole(role);
+                      setScale(1);
+                      if (activeFlaw) onInspect(undefined);
+                    }}
+                  >
+                    {role === "reference"
+                      ? "Reference"
+                      : role === "front"
+                        ? "Front"
+                        : "Back"}
+                  </button>
+                ))}
             </div>
             <div className="inline-zoom">
               <button
@@ -187,7 +246,9 @@ export function ComparisonStage({
           <p className="comparison-caption">
             {activeFlaw
               ? activeFlaw.description
-              : "Select a disclosed detail below to inspect its source and close-ups."}
+              : bundle.item.declaration === "not-supplied"
+                ? "Your supplied reference, unchanged. No additional condition views were provided."
+                : "Select a disclosed detail below to inspect its source and close-ups."}
           </p>
         </article>
       </div>
@@ -205,7 +266,7 @@ export function ComparisonStage({
       </label>
       <div className="detail-navigation">
         <span className="eyebrow">
-          <Focus size={15} /> LOOK CLOSER
+          <Focus size={15} /> Look closer
         </span>
         {bundle.item.flaws.length ? (
           bundle.item.flaws.map((flaw, index) => (
@@ -223,7 +284,11 @@ export function ComparisonStage({
             </button>
           ))
         ) : (
-          <p>Seller reports no known flaws; not independently inspected.</p>
+          <p>
+            {bundle.item.declaration === "not-supplied"
+              ? "Condition information not supplied. Do not infer condition from the generated look."
+              : "Seller reports no known flaws; not independently inspected."}
+          </p>
         )}
       </div>
       {!!closeups.length && (

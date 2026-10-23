@@ -1,5 +1,14 @@
 import { notFound } from "next/navigation";
-const sections = ["privacy", "evidence", "examples", "storefront", "seller"];
+const sections = [
+  "privacy",
+  "evidence",
+  "examples",
+  "storefront",
+  "seller",
+  "try",
+  "rack",
+  "collection",
+];
 export function generateStaticParams() {
   return sections.map((section) => ({ section }));
 }

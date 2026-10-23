@@ -1,264 +1,343 @@
 "use client";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowDown, ArrowRight, ArrowUpRight, Focus } from "lucide-react";
-const lenses = [
-  {
-    label: "The silhouette",
-    image: "reference",
-    title: "The style you imagine. The garment you inspect.",
-    tag: "ORIGINAL REFERENCE",
-  },
-  {
-    label: "The garment",
-    image: "front",
-    title: "Its original photographs stay in the picture.",
-    tag: "ORIGINAL FRONT VIEW",
-  },
-  {
-    label: "The detail",
-    image: "cuff",
-    title: "A little wear. A question worth asking.",
-    tag: "SELLER-DISCLOSED CUFF DETAIL",
-  },
+import {
+  ArrowDown,
+  ArrowUpRight,
+  Check,
+  ImagePlus,
+  LoaderCircle,
+  MoveUpRight,
+  X,
+} from "lucide-react";
+import { CATEGORY_LABELS, type Bundle, type Category } from "@/domain/model";
+import { createQuickTry } from "@/domain/browser";
+import { EXAMPLES } from "./catalogue";
+
+const pictures = [
+  "/samples/preview.jpg",
+  "/samples/reference.jpg",
+  "/samples/cuff.jpg",
 ];
+const pictureLabels = [
+  "Recorded YouCam style preview of a synthetic adult in the linen shirt",
+  "Original synthetic garment reference",
+  "Original synthetic close-up of the declared cuff wear",
+];
+
 export function StudioLanding({
   busy,
   onExplore,
   onLive,
   onCreate,
+  onReady,
   importControl,
+  onExample,
 }: {
   busy: boolean;
   onExplore: () => void;
   onLive: () => void;
   onCreate: () => void;
+  onReady: (bundle: Bundle) => Promise<void>;
+  onExample: (slug: string) => void;
   importControl: ReactNode;
 }) {
+  const [category, setCategory] = useState<Category>("upper_body");
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    setReady(true);
+  }, []);
+  const [title, setTitle] = useState("");
+  const [preparing, setPreparing] = useState(false);
+  const [error, setError] = useState("");
+  const [dragging, setDragging] = useState(false);
   const [lens, setLens] = useState(0);
-  const selected = lenses[lens];
+  const [demos, setDemos] = useState(false);
+  const input = useRef<HTMLInputElement>(null);
+  const demoDialog = useRef<HTMLDialogElement>(null);
+  const lock = useRef(false);
+  async function upload(file?: File) {
+    if (!file || !ready || busy || lock.current) return;
+    lock.current = true;
+    setPreparing(true);
+    setError("");
+    try {
+      const name =
+        title.trim() || file.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " ");
+      await onReady(await createQuickTry(file, category, name));
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "The photograph could not be opened.",
+      );
+    } finally {
+      lock.current = false;
+      setPreparing(false);
+    }
+  }
   return (
     <>
-      <section className="decision-hero">
-        <div className="hero-overline">
-          <span>
-            <i className="live-dot" /> SECONDHAND / CONSIDERED
-          </span>
-          <span>YOUR NEXT FAVOURITE, IN CONTEXT.</span>
-        </div>
-        <div className="decision-hero-heading">
-          <h1>
-            Try it on.
+      <section className="fit-home" aria-labelledby="fit-title">
+        <div className="fit-intro">
+          <p className="fit-kicker">
+            <span /> A fitting room for secondhand finds.
+          </p>
+          <h1 id="fit-title">
+            Try on your
             <br />
-            <em>Look closer.</em>
-            <sup>✳</sup>
+            next <span>thrift find.</span>
+            <MoveUpRight aria-hidden="true" />
           </h1>
-          <div>
-            <p>
-              A real YouCam style preview.
-              <br />
-              The original condition photographs.
-              <br />
-              One decision, with the whole story.
-            </p>
+          <p className="fit-description">
+            Your photo. Any piece you’ve found.
+            <br />
+            See the look. Check the real details.
+          </p>
+          <div
+            className={"quick-drop " + (dragging ? "is-dragging" : "")}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragging(false);
+              if (e.dataTransfer.files.length !== 1)
+                setError("Drop one garment photograph at a time.");
+              else void upload(e.dataTransfer.files[0]);
+            }}
+          >
+            <div className="quick-fields">
+              <label>
+                What’s the piece?
+                <select
+                  aria-label="Garment category"
+                  value={category}
+                  disabled={!ready || preparing || busy}
+                  onChange={(e) => setCategory(e.target.value as Category)}
+                >
+                  {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Name it <span className="optional">(optional)</span>
+                <input
+                  aria-label="Name your find"
+                  maxLength={120}
+                  placeholder="The one you can’t stop thinking about"
+                  value={title}
+                  disabled={!ready || preparing || busy}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </label>
+            </div>
             <button
-              className="button primary"
+              className="fit-upload"
+              aria-label="Try my item"
+              disabled={!ready || preparing || busy}
+              onClick={() => input.current?.click()}
+            >
+              {preparing ? (
+                <LoaderCircle className="spin" size={25} />
+              ) : (
+                <ImagePlus size={25} />
+              )}
+              <span>
+                {!ready
+                  ? "Opening the fitting room…"
+                  : preparing
+                    ? "Preparing your piece…"
+                    : "Try my item"}
+                <small>
+                  {preparing
+                    ? "Checking the image on this device"
+                    : "Upload or drop a garment photo"}
+                </small>
+              </span>
+              <ArrowUpRight size={25} />
+            </button>
+            <input
+              ref={input}
+              type="file"
+              className="sr-only"
+              aria-label="Garment photo"
+              accept="image/jpeg,image/png"
+              disabled={!ready || preparing || busy}
+              onChange={(e) => {
+                void upload(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+            <p className="upload-explainer">
+              JPEG or PNG · up to 12 MB. Use a photo you have permission to use.
+              Nothing is sent to YouCam until you approve.
+            </p>
+          </div>
+          {error && (
+            <p role="alert" className="fit-error">
+              {error}
+            </p>
+          )}
+          <noscript>
+            <p>
+              Enable JavaScript to prepare your photographs locally and use the
+              fitting room.
+            </p>
+          </noscript>
+          <div className="fit-entry-actions">
+            <button
+              className="text-button"
               aria-label="Explore the completed example"
+              disabled={busy || preparing}
               onClick={onExplore}
+            >
+              Try a demo <ArrowUpRight size={18} />
+            </button>
+            <button
+              className="text-button"
+              onClick={() => {
+                setDemos(true);
+                demoDialog.current?.showModal();
+              }}
+            >
+              Choose a demo
+            </button>
+            <button
+              className="text-button live-demo-link"
+              onClick={onLive}
               disabled={busy}
             >
-              Enter the inspection studio <ArrowUpRight size={19} />
-            </button>
-            <button className="text-button" onClick={onLive} disabled={busy}>
-              Try a live preview <ArrowRight size={16} />
+              Try a live preview <ArrowUpRight size={17} />
             </button>
           </div>
-        </div>
-        <div className="hero-inspection-board">
-          <div className="board-caption">
-            <span>CASE 001 / THE RUST LINEN SHIRT</span>
-            <span>
-              <Focus size={14} /> TWO VIEWS, ONE CONSIDERED DECISION
-            </span>
-          </div>
-          <div className="hero-comparison">
-            <div className="hero-style-frame">
-              <span className="frame-overline">01 / SEE THE STYLE</span>
-              <img
-                src="/samples/preview.jpg"
-                alt="Actual recorded YouCam output depicting a synthetic adult in the rust linen shirt"
-                width={800}
-                height={1200}
-                fetchPriority="high"
-              />
-              <span className="persistent-image-label">
-                AI STYLE PREVIEW · ACTUAL YOUCAM OUTPUT
-              </span>
-            </div>
-            <div className={"hero-evidence-frame lens-" + selected.image}>
-              <span className="frame-overline">02 / KEEP THE DETAILS</span>
-              <img
-                src={"/samples/" + selected.image + ".jpg"}
-                alt={selected.tag + " of the fictional rust linen shirt"}
-                width={800}
-                height={1200}
-              />
-              <span className="persistent-image-label source-label">
-                {selected.tag}
-              </span>
-              {lens !== 2 && (
-                <button
-                  className="hero-detail-pin"
-                  onClick={() => setLens(2)}
-                  aria-label="Focus on the declared cuff detail"
-                >
-                  <span>01</span>
-                  <span>
-                    A little cuff wear
-                    <br />
-                    <b>Take a closer look ↗</b>
-                  </span>
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="board-bottom">
-            <div className="hero-lenses" aria-label="Explore the sample views">
-              {lenses.map((item, index) => (
-                <button
-                  key={item.image}
-                  aria-pressed={lens === index}
-                  onClick={() => setLens(index)}
-                >
-                  <span>0{index + 1}</span>
-                  {item.label}
-                  <ArrowUpRight size={14} />
-                </button>
-              ))}
-            </div>
-            <p aria-live="polite">{selected.title}</p>
-            <button
-              className="board-open"
-              onClick={onExplore}
-              aria-label="Open this item record"
-            >
-              <ArrowUpRight size={23} />
-            </button>
-          </div>
-        </div>
-        <div className="hero-footnote">
-          <span>
-            Synthetic demonstration photographs. Actual recorded YouCam result.
-          </span>
-          <a href="#the-idea" aria-label="Read how As-Shown works">
-            <ArrowDown size={18} />
-          </a>
-        </div>
-        <div className="entry-tools">
-          {importControl}
-          <span>Explore without an account or personal photograph.</span>
-        </div>
-      </section>
-      <section className="journey-section" id="the-idea">
-        <span className="eyebrow">
-          THE GOOD PART OF SECONDHAND? THE DETAILS.
-        </span>
-        <div className="journey-heading">
-          <h2>
-            Fall for the style.
-            <br />
-            <em>Stay for the story.</em>
-          </h2>
-          <p>
-            Seeing yourself in a secondhand piece is one part of the decision.
-            As-Shown gives the original photographs, disclosed wear and
-            unanswered questions their own space beside the generated image.
+          <p className="fit-limit">
+            A style preview, not a fit or condition guarantee.
           </p>
         </div>
-        <div className="journey-grid">
-          <article>
-            <span>01 / THE SELLER</span>
-            <h3>
-              Give the garment
-              <br />a clear record.
-            </h3>
-            <p>
-              Add its photographs. Show what a buyer should know. Keep each
-              revision together.
-            </p>
-            <button className="text-button" onClick={onCreate}>
-              Create a record <ArrowUpRight size={16} />
+        <div className="fit-stage">
+          <div className="fit-stage-head">
+            <span>One find. The whole picture.</span>
+            <span className="fit-case">Demo 01</span>
+          </div>
+          <div className={"fit-model lens-" + lens}>
+            <img
+              key={lens}
+              src={pictures[lens]}
+              alt={pictureLabels[lens]}
+              width={800}
+              height={1200}
+              fetchPriority="high"
+            />
+            <div className="fit-image-caption">
+              {
+                [
+                  "Actual YouCam output · synthetic demo",
+                  "Original reference · synthetic demo",
+                  "Original cuff detail · synthetic demo",
+                ][lens]
+              }
+            </div>
+            <button
+              className="detail-ticket"
+              onClick={() => setLens(lens === 2 ? 0 : 2)}
+            >
+              <span className="ticket-ring">↗</span>
+              <span>
+                {lens === 2
+                  ? "Back to the look"
+                  : "Looks good. But look closer."}
+                <small>
+                  {lens === 2
+                    ? "Style and condition are different questions."
+                    : "A little cuff wear, in the original photo."}
+                </small>
+              </span>
             </button>
-          </article>
-          <article>
-            <span>02 / THE BUYER</span>
-            <h3>
-              See the look.
-              <br />
-              Inspect the detail.
-            </h3>
-            <p>
-              Compare a personalized YouCam preview with source evidence, then
-              decide what works for you.
-            </p>
-            <button className="text-button" onClick={onExplore}>
-              Explore the inspection <ArrowUpRight size={16} />
-            </button>
-          </article>
-          <article>
-            <span>03 / YOUR DECISION</span>
-            <h3>
-              Keep what
-              <br />
-              you reviewed.
-            </h3>
-            <p>
-              Save the actual photographs, your questions and the precise item
-              revision in a record you can reopen.
-            </p>
-            <Link className="text-button" href="/examples">
-              Meet the collection <ArrowUpRight size={16} />
-            </Link>
-          </article>
+          </div>
+          <div
+            className="fit-lenses"
+            aria-label="Explore the example photographs"
+          >
+            {["The look", "The piece", "The detail"].map((name, i) => (
+              <button
+                key={name}
+                aria-pressed={lens === i}
+                onClick={() => setLens(i)}
+              >
+                <span>0{i + 1}</span>
+                {name}
+                {lens === i ? <Check size={17} /> : <ArrowUpRight size={17} />}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
-      <section className="collection-teaser">
+      <section className="fit-bottom">
         <div>
-          <span className="eyebrow">
-            A SMALL COLLECTION. A FEW BIG QUESTIONS.
-          </span>
-          <h2>
-            Every piece has
-            <br />
-            <em>something to show.</em>
-          </h2>
-          <Link className="button primary" href="/examples">
-            Explore three garments <ArrowUpRight size={18} />
-          </Link>
+          <ArrowDown size={24} />
+          <p>
+            <strong>Not a shop. Your decision space.</strong> Bring a find from
+            wherever you browse. Keep its original details beside the generated
+            look.
+          </p>
         </div>
-        <div className="teaser-images">
-          <Link href="/examples/navy-knit">
-            <img
-              src="/samples/navy-knit/reference.jpg"
-              alt="Synthetic navy cable-knit sweater"
-              width={600}
-              height={900}
-              loading="lazy"
-            />
-            <span>02 / THE NAVY KNIT ↗</span>
-          </Link>
-          <Link href="/examples/ivory-shirt">
-            <img
-              src="/samples/ivory-shirt/reference.jpg"
-              alt="Synthetic ivory silk shirt"
-              width={600}
-              height={900}
-              loading="lazy"
-            />
-            <span>03 / THE IVORY SHIRT ↗</span>
-          </Link>
+        <div className="fit-tools">
+          {importControl}
+          <button className="text-button" onClick={onCreate}>
+            I’m selling a piece <ArrowUpRight size={17} />
+          </button>
+          <Link href="/privacy">Privacy & limits</Link>
         </div>
       </section>
+      <dialog
+        ref={demoDialog}
+        className="demo-drawer"
+        aria-labelledby="demo-title"
+        onClose={() => setDemos(false)}
+      >
+        <div className="section-line">
+          <h2 id="demo-title">Take a test spin.</h2>
+          <button
+            className="icon-button"
+            aria-label="Close demo chooser"
+            onClick={() => demoDialog.current?.close()}
+          >
+            <X />
+          </button>
+        </div>
+        <p>
+          Three synthetic examples with actual recorded YouCam results. Your own
+          rack isn’t limited to these pieces.
+        </p>
+        {demos && (
+          <div className="demo-choices">
+            {EXAMPLES.map((example) => (
+              <button
+                key={example.slug}
+                disabled={busy}
+                onClick={() => {
+                  demoDialog.current?.close();
+                  onExample(example.slug);
+                }}
+              >
+                <img
+                  src={example.image}
+                  alt={"Synthetic " + example.title}
+                  width={250}
+                  height={375}
+                />
+                <span>
+                  {example.title} <ArrowUpRight size={18} />
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </dialog>
     </>
   );
 }

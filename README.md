@@ -1,8 +1,8 @@
 # As-Shown
 
-**Try it on. Look closer.**
+**Try on your next thrift find.**
 
-A secondhand garment's original condition evidence stays beside a real YouCam style preview. The buyer reviews one exact item revision and can take the actual images and notes away in a portable package.
+An upload-first secondhand fitting room. Bring an authorized garment photograph, add your own photo, explicitly approve the two-image YouCam preview, and keep the original reference beside the generated look. My Rack organizes your own pieces—not a three-item public shop. Seller records add original condition evidence, revisions and portable inspection decisions.
 
 This is a limited-credit, non-commercial hackathon prototype—not a marketplace, defect detector, authenticity service, sizing tool or fit guarantee.
 
@@ -16,12 +16,17 @@ Previously named AsShown. The old website remains available for browser-local re
 
 See [the final technical handoff](docs/FINAL_READINESS.md) for the completed verification, public test run, financial boundaries and honest limitations.
 
-- Explore three completed garment examples without supplying a photograph or API credential.
+- Try your own garment with one photo; no invented seller declaration or mandatory three-photo seller form. Quick Try explicitly records condition as not supplied.
+- Organize a device-local rack with search, category/decision/collection filters, shortlists, named collections, keyboard reorder and confirmed removal. Boundaries: 40 source records / 100 MB of source photographs; optional saved generated looks have a separate 50 MB limit.
+- Use category-specific guidance and provider payloads for tops/layers, bottoms, full looks/dresses and shoes. This is not broad accuracy or fit validation.
+- Keep personal input photos in memory only. Generated looks return after reopening only if separately opted into device-local storage. No personal cloud library.
+- Explore the three optional completed demos without supplying a photograph or API credential; these are examples, not the available inventory.
 - Create a seller record with a reference, front/back views and an explicit condition declaration. Every declared issue needs a linked close-up.
 - Export a seller-only item package and open it in another browser context.
 - Deliberately approve a live preview. Only the prepared shopper image and garment reference go to YouCam.
 - Compare style and original evidence simultaneously, mark personal preferences, and save a private decision package or standalone script-free HTML with embedded photographs.
 - Optionally publish a 24-hour seller-only link. Publication creates a separate metadata-free revision, excludes personal previews/notes, and supplies a private revocation link. Local packages require no cloud storage.
+- Combine up to eight already-published seller read links into one shared collection. No new photo upload; each record retains its existing expiry/revocation/quota. Management capabilities, personal looks and notes never enter the collection URL.
 - Zoom source evidence in the inspector, locate seller-marked regions, prepare a seller-question draft from your own decisions, and see what changed between revisions. None of these helpers uses a general-purpose AI model.
 
 All public sample people, garments and condition examples are synthetic. Recorded previews are actual YouCam API outputs, not mocked API responses. See [the asset ledger](docs/ASSET_LEDGER.md) and [v4 provenance](docs/V4_ASSETS.md).

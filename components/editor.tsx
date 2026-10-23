@@ -22,6 +22,9 @@ import {
   freshReview,
   imageDimensions,
   sha256,
+  categorySchema,
+  CATEGORY_LABELS,
+  type Category,
 } from "@/domain/model";
 import { readAsset, prepareInput, getLocal, putLocal } from "@/domain/browser";
 import { Photo } from "./photo";
@@ -43,6 +46,7 @@ const draftSchema = z.object({
   title: z.string().max(120),
   description: z.string().max(1500),
   declaration: z.enum(["", "declared-flaws", "no-known-flaws"]),
+  category: categorySchema.optional(),
   assets: z.array(assetSchema).max(20),
   data: z.record(z.string(), z.instanceof(Uint8Array)),
   issues: z.array(issueSchema).max(12),
@@ -69,7 +73,12 @@ export function Editor({
   );
   const [data, setData] = useState<AssetData>(existing?.assets || {});
   const [declaration, setDeclaration] = useState<Item["declaration"] | "">(
-    existing?.item.declaration || "",
+    existing?.item.declaration === "not-supplied"
+      ? ""
+      : existing?.item.declaration || "",
+  );
+  const [category, setCategory] = useState<Category>(
+    existing?.item.category || "upper_body",
   );
   const [issues, setIssues] = useState<IssueDraft[]>(
     existing?.item.flaws.map((f) => ({
@@ -106,6 +115,9 @@ export function Editor({
           setTitle(saved.data.title);
           setDescription(saved.data.description);
           setDeclaration(saved.data.declaration);
+          setCategory(
+            saved.data.category || existing?.item.category || "upper_body",
+          );
           setAssets(saved.data.assets);
           setData(saved.data.data);
           setIssues(saved.data.issues);
@@ -134,6 +146,7 @@ export function Editor({
         title,
         description,
         declaration,
+        category,
         assets,
         data,
         issues,
@@ -150,6 +163,7 @@ export function Editor({
     title,
     description,
     declaration,
+    category,
     assets,
     data,
     issues,
@@ -305,14 +319,12 @@ export function Editor({
           "This record supports 20 images. Remove a close-up before saving.",
         );
       const item = await sealItem({
-        schemaVersion: assets.some((a) => a.role === "preview-reference")
-          ? 2
-          : 1,
+        schemaVersion: 3,
         itemId: existing?.item.itemId || crypto.randomUUID(),
         revision: (existing?.item.revision || 0) + 1,
         title,
         description,
-        category: "upper_body",
+        category,
         createdAt: new Date().toISOString(),
         declaration,
         assets: all,
@@ -364,7 +376,16 @@ export function Editor({
             </label>
             <label>
               Category
-              <input value="Upper-body shirt / top" readOnly />
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as Category)}
+              >
+                {Object.entries(CATEGORY_LABELS).map(([value, name]) => (
+                  <option key={value} value={value}>
+                    {name}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
           <label>

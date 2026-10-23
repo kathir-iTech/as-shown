@@ -9,15 +9,19 @@ export function EvidencePage() {
         you can inspect.
       </h1>
       <p>
-        As-Shown connects a real YouCam style preview to an explicit seller
-        condition record and the buyer’s own decisions.
+        As-Shown is an upload-first fitting room for secondhand finds. Try an
+        authorized garment photo without inventing a seller inspection, or open
+        a complete seller record to keep original condition details beside the
+        generated look. Your pieces and decisions belong in your own rack.
       </p>
       <section>
         <h2>Follow one garment through the system</h2>
         <ol>
           <li>
-            The seller supplies a reference, front/back photos and condition
-            details.
+            Quick Try starts with one authorized garment photo and a selected
+            category. Condition is explicitly not supplied. Sellers can instead
+            add front/back photographs, declarations and linked condition
+            close-ups.
           </li>
           <li>
             A separately prepared copy of the reference and an approved shopper
@@ -32,6 +36,11 @@ export function EvidencePage() {
             requires a fresh condition review.
           </li>
           <li>Exports contain actual images and can be opened offline.</li>
+          <li>
+            My Rack organizes local pieces, questions and decisions. Saving a
+            generated likeness on this device requires a separate opt-in; the
+            personal input photo is not saved.
+          </li>
         </ol>
       </section>
       <section>
@@ -52,7 +61,11 @@ export function EvidencePage() {
           </a>{" "}
           ·{" "}
           <a href="https://github.com/kathir-iTech/as-shown/blob/main/docs/RELEASE_EVIDENCE.md">
-            Release evidence
+            Historical release evidence
+          </a>
+          {" · "}
+          <a href="https://github.com/kathir-iTech/as-shown/blob/main/docs/FITTING_ROOM.md">
+            Fitting-room workflow and current verification
           </a>
         </p>
       </section>

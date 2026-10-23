@@ -19,7 +19,7 @@ export function DecisionDesk({ bundle }: { bundle: Bundle }) {
   return (
     <section className="decision-desk" aria-label="Your decision brief">
       <div className="desk-heading">
-        <span className="eyebrow">YOUR DECISION BRIEF</span>
+        <span className="eyebrow">Your decision brief</span>
         <span className="pill outline">Private · on this device</span>
       </div>
       <div className="desk-body">
@@ -49,12 +49,14 @@ export function DecisionDesk({ bundle }: { bundle: Bundle }) {
         </dl>
       </div>
       <div className="coverage-strip">
-        {(["front", "back", "reference"] as const).map((role) => (
-          <span key={role}>
-            <Check size={14} />
-            {role[0].toUpperCase() + role.slice(1)} photo
-          </span>
-        ))}
+        {(["front", "back", "reference"] as const)
+          .filter((role) => bundle.item.assets.some((a) => a.role === role))
+          .map((role) => (
+            <span key={role}>
+              <Check size={14} />
+              {role[0].toUpperCase() + role.slice(1)} photo
+            </span>
+          ))}
         <span>
           <Check size={14} />
           Revision {bundle.item.revision}

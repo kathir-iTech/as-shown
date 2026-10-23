@@ -17,14 +17,25 @@ export function PrivacyPage({ onHome }: { onHome: () => void }) {
           Seller records, condition close-ups and buyer notes are processed in
           your browser. Seller drafts and opened inspection records are saved
           locally in IndexedDB as you work. The personal input photo stays in
-          memory. Completed previews are not stored in source drafts.
-          Seller-only exports exclude buyer notes and generated personal images.
+          memory. Completed previews are not stored in source drafts. A separate
+          unchecked choice lets you keep a generated look (which may contain
+          your likeness) in My Rack on this device, up to 50 MB of saved looks.
+          Unchecking that choice, removing the item, or clearing local data
+          removes that saved look; existing downloads remain. Seller-only
+          exports exclude buyer notes and generated personal images.
         </p>
         <p>
           There is no As-Shown user account, checkout, advertising tracker or
           automatic cloud photo library. Publishing a seller-only link is a
           separate explicit action. This does not mean the host or provider has
           no operational logs.
+        </p>
+        <p>
+          Quick Try accepts one authorized garment image without requiring a
+          seller record. It explicitly records condition as not supplied. My
+          Rack stores up to 40 source records / 100 MB of source images, with
+          local decisions and named collections. These are your saved pieces,
+          not public inventory or listings for sale.
         </p>
       </section>
       <section>
@@ -98,6 +109,14 @@ export function PrivacyPage({ onHome }: { onHome: () => void }) {
           publication metadata expires after 48 hours. Free-service quotas may
           pause publication or access.
         </p>
+        <p>
+          A shared collection contains read links for up to eight
+          already-published seller copies. It uploads no extra photos and
+          excludes personal looks, notes and management tokens. Each item
+          retains its own expiry, revocation and transfer quota. Anyone holding
+          the complete collection URL can read those copies while valid; do not
+          publish the link unintentionally.
+        </p>
       </section>
       <section>
         <h2>What the app cannot verify</h2>
@@ -144,10 +163,12 @@ export function PrivacyPage({ onHome }: { onHome: () => void }) {
           YouCam outputs. This is not a real-user accuracy or usefulness study.
         </p>
         <p>
-          This is a free, limited-credit hackathon prototype for upper-body
-          shirts and tops. No real-user impact study, broad garment validation,
-          security certification or production-scale load test is claimed.
-          Disclosure version: asshown-2026-10-20.
+          This is a free, limited-credit hackathon prototype with explicit
+          upper-body, lower-body, full-body and shoe category handling. Category
+          support is not a promise of accurate fit, body proportions, size or
+          fabric representation. No real-user impact study, broad garment
+          validation, security certification or production-scale load test is
+          claimed. Disclosure version: asshown-2026-10-20.
         </p>
       </section>
     </article>

@@ -5,6 +5,8 @@ import {
   DISCLOSURE_VERSION,
   type Bundle,
   previewAdmission,
+  sealItem,
+  freshReview,
 } from "../domain/model";
 import {
   createPreview,
@@ -57,17 +59,16 @@ afterEach(() => {
 });
 const cookie = () =>
   `__Host-asshown-session=${sign({ type: "session", sid, exp: Date.now() + 60000 })}`;
-async function request(
-  consent: unknown = {
+async function request(consent?: unknown, record: Bundle = fixture) {
+  const approval = consent ?? {
     affirmative: true,
     policyVersion: DISCLOSURE_VERSION,
-    itemDigest: fixture.item.contentDigest,
+    itemDigest: record.item.contentDigest,
     approvedAt: new Date().toISOString(),
-  },
-) {
+  };
   const form = new FormData();
-  form.set("item", JSON.stringify(previewAdmission(fixture.item)));
-  form.set("consent", JSON.stringify(consent));
+  form.set("item", JSON.stringify(previewAdmission(record.item)));
+  form.set("consent", JSON.stringify(approval));
   form.set(
     "shopper",
     new Blob([await readFile("public/samples/shopper.jpg")], {
@@ -167,6 +168,52 @@ it("rejects changed, expired, wrong-purpose and oversized signed tokens", () => 
   ).toThrow("expired");
   expect(() => verify("x".repeat(5000), "session")).toThrow();
 });
+for (const category of [
+  "upper_body",
+  "lower_body",
+  "full_body",
+  "shoes",
+] as const) {
+  it(`binds the ${category} Quick Try category to the reserved intent and actual provider payload`, async () => {
+    const reference = fixture.item.assets.find((a) => a.role === "reference")!;
+    const item = await sealItem({
+      schemaVersion: 3,
+      itemId: "quick-category-test",
+      revision: 1,
+      title: "A personal find",
+      description: "private-quick-description",
+      category,
+      createdAt: new Date().toISOString(),
+      declaration: "not-supplied",
+      assets: [reference],
+      flaws: [],
+    });
+    const record = {
+      item,
+      assets: { [reference.id]: fixture.assets[reference.id] },
+      review: freshReview(item),
+    };
+    const spy = providerMock();
+    const response = await createPreview(await request(undefined, record));
+    expect(response.status).toBe(200);
+    const task = spy.mock.calls.find(
+      ([url, options]) =>
+        String(url).endsWith("/task/cloth-v3") && options?.method === "POST",
+    );
+    expect(JSON.parse(String(task?.[1]?.body))).toEqual({
+      src_file_id: "test-file-id",
+      ref_file_id: "test-file-id",
+      garment_category: category,
+      change_shoes: false,
+    });
+    expect(vi.mocked(reserveRun).mock.calls.at(-1)?.[3]).toContain(
+      `:${category}:`,
+    );
+    expect(JSON.stringify(spy.mock.calls)).not.toContain(
+      "private-quick-description",
+    );
+  });
+}
 it("rejects missing/cross-site origin", () => {
   expect(() => sameOrigin(new Request("https://asshown.test/api"))).toThrow();
   expect(() =>

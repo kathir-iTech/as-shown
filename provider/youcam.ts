@@ -271,6 +271,7 @@ export function capability() {
     durableRequestProtection: ledgerConfigured(),
     provider: "YouCam Clothes VTO V3",
     category: "upper_body",
+    categories: ["upper_body", "lower_body", "full_body", "shoes"],
     disclosureVersion: DISCLOSURE_VERSION,
   };
 }
@@ -616,6 +617,7 @@ export async function createPreview(request: Request): Promise<Response> {
       contentDigest,
       referenceMeta.digest,
       hash(sourceBytes),
+      item.category,
       DISCLOSURE_VERSION,
     ].join(":"),
     configured(),
@@ -631,7 +633,7 @@ export async function createPreview(request: Request): Promise<Response> {
     const p = await api(TASK, "POST", {
       src_file_id: sourceId,
       ref_file_id: referenceId,
-      garment_category: "upper_body",
+      garment_category: item.category,
       change_shoes: false,
     });
     if (

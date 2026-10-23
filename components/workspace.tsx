@@ -26,6 +26,8 @@ import {
   imageDimensions,
   verifyBundle,
   previewAdmission,
+  CATEGORY_GUIDANCE,
+  CATEGORY_LABELS,
 } from "@/domain/model";
 import {
   prepareShopper,
@@ -33,6 +35,7 @@ import {
   getLocal,
   saveDraft,
   download,
+  rememberLook,
 } from "@/domain/browser";
 import { savePackage, saveHtml } from "@/domain/archive-client";
 import { prepareReference } from "@/domain/browser";
@@ -73,6 +76,8 @@ export function Workspace({
   onHome,
   onNotice,
   openLive = false,
+  initialShopper,
+  onShopperChange,
 }: {
   bundle: Bundle;
   onChange: (bundle: Bundle) => void;
@@ -80,6 +85,8 @@ export function Workspace({
   onHome: () => void;
   onNotice: (message: string) => void;
   openLive?: boolean;
+  initialShopper?: Uint8Array;
+  onShopperChange: (photo?: Uint8Array) => void;
 }) {
   const { item } = bundle;
   const reference = referenceOf(item);
@@ -87,7 +94,12 @@ export function Workspace({
   const shopperRead = useRef(0);
   const pendingKey = `pending:${item.itemId}:${item.contentDigest}`;
   const [consentOpen, setConsentOpen] = useState(openLive);
-  const [shopper, setShopper] = useState<Uint8Array>();
+  const [shopper, setShopper] = useState<Uint8Array | undefined>(
+    initialShopper,
+  );
+  const [lookSaved, setLookSaved] = useState(false);
+  const [lookSaving, setLookSaving] = useState(false);
+  const lookVersion = useRef(0);
   const [consent, setConsent] = useState(false);
   const [exportConsent, setExportConsent] = useState(false);
   const [stage, setStage] = useState<Stage>("idle");
@@ -98,6 +110,24 @@ export function Workspace({
   const [inspected, setInspected] = useState<Flaw>();
   const lock = useRef(false);
   const active = stage === "uploading" || stage === "running";
+  const quick = item.declaration === "not-supplied";
+  useEffect(() => {
+    let cancelled = false;
+    const version = ++lookVersion.current;
+    void getLocal<Pick<Bundle, "preview">>("look:" + item.itemId)
+      .then((look) => {
+        if (!cancelled && version === lookVersion.current)
+          setLookSaved(
+            !!look?.preview &&
+              look.preview.itemDigest === item.contentDigest &&
+              look.preview.resultDigest === bundle.preview?.resultDigest,
+          );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [item.itemId, item.contentDigest, bundle.preview?.resultDigest]);
 
   useEffect(() => {
     void getLocal<Pending>(pendingKey)
@@ -170,6 +200,7 @@ export function Workspace({
             createdAt: pending!.createdAt,
             mime: meta.mime,
             disclosureVersion: DISCLOSURE_VERSION,
+            category: item.category,
           };
           const next = { ...bundle, preview, result };
           await verifyBundle(next);
@@ -219,9 +250,13 @@ export function Workspace({
     setPreparing(true);
     setMessage("");
     setConsent(false);
+    onShopperChange(undefined);
     try {
       const prepared = await prepareShopper(file);
-      if (version === shopperRead.current) setShopper(prepared);
+      if (version === shopperRead.current) {
+        setShopper(prepared);
+        onShopperChange(prepared);
+      }
     } catch (e) {
       if (version === shopperRead.current)
         setMessage(
@@ -422,13 +457,18 @@ export function Workspace({
       </div>
       <div className="item-heading">
         <div>
-          <span className="eyebrow">ONE ITEM. THE WHOLE PICTURE.</span>
+          <span className="eyebrow">
+            {CATEGORY_LABELS[item.category]} ·{" "}
+            {quick ? "Your find" : "Seller record"}
+          </span>
           <h1>{item.title}</h1>
-          <p>{item.description}</p>
+          {!quick && <p>{item.description}</p>}
         </div>
         <span className="record-tag">
           <ShieldCheck size={20} />
-          Files agree with this record
+          {quick
+            ? "Your reference stays original"
+            : "Files agree with this record"}
           <small>Not an inspection or authenticity check</small>
         </span>
       </div>
@@ -454,7 +494,7 @@ export function Workspace({
         <span>
           <b>03</b> Condition review{" "}
           <small>
-            {reviewed}/{item.flaws.length}
+            {quick ? "not supplied" : `${reviewed}/${item.flaws.length}`}
           </small>
         </span>
         <span>
@@ -468,6 +508,9 @@ export function Workspace({
             activeFlaw={focused}
             onInspect={setFocused}
             onPreview={() => setConsentOpen(true)}
+            shopper={shopper}
+            processing={active}
+            stage={stage}
           />
           {(reference.byteLength > 1_200_000 ||
             reference.width > 4096 ||
@@ -511,7 +554,7 @@ export function Workspace({
           {consentOpen && (
             <section className="consent-panel">
               <div className="section-line">
-                <h2>A preview, with permission.</h2>
+                <h2>Your turn.</h2>
                 <button
                   className="icon-button"
                   aria-label="Close preview form"
@@ -521,11 +564,7 @@ export function Workspace({
                   <X size={19} />
                 </button>
               </div>
-              <p>
-                Use one front-facing adult, an unobscured torso and arms away
-                from the shirt. Full-body and head-to-mid-thigh framings worked
-                in our synthetic tests; other inputs remain unverified.
-              </p>
+              <p>{CATEGORY_GUIDANCE[item.category]}</p>
               <div className="shopper-picker">
                 <label className="button secondary">
                   <Upload size={16} />
@@ -547,8 +586,14 @@ export function Workspace({
                     setPreparing(true);
                     setConsent(false);
                     try {
+                      const version = ++shopperRead.current;
                       const r = await fetch("/samples/shopper.jpg");
-                      setShopper(new Uint8Array(await r.arrayBuffer()));
+                      if (!r.ok) throw new Error();
+                      const bytes = new Uint8Array(await r.arrayBuffer());
+                      if (version === shopperRead.current) {
+                        setShopper(bytes);
+                        onShopperChange(bytes);
+                      }
                     } catch {
                       setMessage("Sample photo could not be loaded.");
                     } finally {
@@ -571,7 +616,8 @@ export function Workspace({
                 and dimensions capped at 2048 px. The personal input stays in
                 memory, not a saved draft.
               </p>
-              <div className="consent-detail">
+              <details className="consent-detail">
+                <summary>Where do the two images go?</summary>
                 <LockKeyhole size={20} />
                 <p>
                   Only your prepared photo and this record’s garment reference
@@ -589,7 +635,7 @@ export function Workspace({
                   </a>
                   .
                 </p>
-              </div>
+              </details>
               <label className="check-label">
                 <input
                   type="checkbox"
@@ -625,6 +671,19 @@ export function Workspace({
                   ? "Processing this task…"
                   : "Send approved images & preview"}
               </button>
+              {shopper && !active && (
+                <button
+                  className="text-button"
+                  onClick={() => {
+                    ++shopperRead.current;
+                    setShopper(undefined);
+                    onShopperChange(undefined);
+                    setConsent(false);
+                  }}
+                >
+                  Remove my photo from this session
+                </button>
+              )}
             </section>
           )}
           {message && (
@@ -662,11 +721,26 @@ export function Workspace({
             <span className="eyebrow">CONDITION, NOT GENERATED</span>
             <h2>Keep the details in view.</h2>
             <p>
-              {item.flaws.length
-                ? `${reviewed} of ${item.flaws.length} declared issues reviewed`
-                : "Seller reports no known flaws; not independently inspected."}
+              {quick
+                ? "Condition information not supplied. A try-on image cannot fill that gap."
+                : item.flaws.length
+                  ? `${reviewed} of ${item.flaws.length} declared issues reviewed`
+                  : "Seller reports no known flaws; not independently inspected."}
             </p>
           </div>
+          {quick && (
+            <section className="missing-condition">
+              <h3>Love the look? Ask for the facts.</h3>
+              <p>
+                You supplied a garment reference, not a seller inspection. Ask
+                for original front and back photos, close-ups of wear, and
+                measurements before deciding.
+              </p>
+              <button className="text-button" onClick={onEdit}>
+                I’m the seller—add condition details <ArrowRight size={17} />
+              </button>
+            </section>
+          )}
           {item.flaws.map((flaw, index) => (
             <article className="condition-card" key={flaw.id}>
               <div className="section-line">
@@ -746,7 +820,7 @@ export function Workspace({
         </aside>
       </div>
       <DecisionDesk bundle={bundle} />
-      <SellerPublisher bundle={bundle} />
+      {!quick && <SellerPublisher bundle={bundle} />}
       <EvidenceInspector
         bundle={bundle}
         flaw={inspected}
@@ -773,6 +847,44 @@ export function Workspace({
           </label>
         </div>
         <div className="save-actions">
+          {bundle.result && (
+            <label className="check-label local-look-consent">
+              <input
+                type="checkbox"
+                checked={lookSaved}
+                disabled={lookSaving}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  const previous = lookSaved;
+                  ++lookVersion.current;
+                  setLookSaved(checked);
+                  setLookSaving(true);
+                  void rememberLook(bundle, checked)
+                    .then(() => {
+                      onNotice(
+                        checked
+                          ? "Generated look saved only on this device. Your input photo was not saved. Remove it here or clear device data at any time."
+                          : "Saved generated look removed from this device. The open session and downloaded copies remain.",
+                      );
+                    })
+                    .catch((error) => {
+                      setLookSaved(previous);
+                      onNotice(
+                        error instanceof Error
+                          ? error.message
+                          : "The saved-look preference could not be changed.",
+                      );
+                    })
+                    .finally(() => setLookSaving(false));
+                }}
+              />
+              <span>
+                Keep this generated look in My Rack on this device. It may
+                contain my likeness. Not uploaded to a cloud library; clearing
+                device data removes it.
+              </span>
+            </label>
+          )}
           <button
             className="button primary"
             disabled={saving || active || !exportConsent}
@@ -795,7 +907,7 @@ export function Workspace({
             onClick={() => void save("item")}
           >
             <Download size={17} />
-            Export seller item only
+            {quick ? "Export reference only" : "Export seller item only"}
           </button>
           <button
             className="text-button"

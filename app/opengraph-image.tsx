@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 export const alt =
-  "As-Shown — Try it on. Look closer. A secondhand decision studio powered by YouCam.";
+  "As-Shown — Try on your next thrift find. Your secondhand fitting room powered by YouCam.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export default async function Image() {
@@ -21,8 +21,8 @@ export default async function Image() {
         display: "flex",
         width: "100%",
         height: "100%",
-        background: "#f3f2ec",
-        color: "#263024",
+        background: "#f7f5f0",
+        color: "#191919",
         padding: 45,
         gap: 35,
       }}
@@ -45,7 +45,7 @@ export default async function Image() {
             lineHeight: 1,
           }}
         >
-          Try it on.<span style={{ color: "#6c765c" }}>Look closer.</span>
+          Try on your<span style={{ color: "#c53720" }}>next thrift find.</span>
         </div>
         <div
           style={{
@@ -55,9 +55,9 @@ export default async function Image() {
             lineHeight: 1.5,
           }}
         >
-          <span>A YouCam style preview.</span>
-          <span>Original condition photographs.</span>
-          <span>Your decision, with its context.</span>
+          <span>Your photo. Your next find.</span>
+          <span>See the look. Check the real details.</span>
+          <span>Your own rack. Not a public shop.</span>
         </div>
         <div style={{ fontSize: 13 }}>
           SYNTHETIC DEMO / ACTUAL RECORDED YOUCAM OUTPUT

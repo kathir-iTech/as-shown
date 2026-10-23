@@ -15,21 +15,29 @@ export function decisionBrief(bundle: Bundle) {
     ),
     skipped: item.flaws.filter((f) => review.decisions[f.id] === "skip"),
   };
-  const title = groups.skipped.length
-    ? "You have a reason to pass."
-    : groups.unreviewed.length
-      ? "There’s more to look at."
-      : groups.questions.length
-        ? "A conversation comes next."
-        : item.flaws.length
-          ? "Your declared-issue review is complete."
-          : "No known issues were declared.";
+  const title =
+    item.declaration === "not-supplied"
+      ? "Condition information not supplied."
+      : groups.skipped.length
+        ? "You have a reason to pass."
+        : groups.unreviewed.length
+          ? "There’s more to look at."
+          : groups.questions.length
+            ? "A conversation comes next."
+            : item.flaws.length
+              ? "Your declared-issue review is complete."
+              : "No known issues were declared.";
   const questions = groups.questions.map(
     (f) =>
       `Could you share more detail and another clear photo of: ${f.description}`,
   );
   const message = [
     `Hi! I’m looking at “${item.title}” (record revision ${item.revision}).`,
+    ...(item.declaration === "not-supplied"
+      ? [
+          "I only have a reference photo. Could you send original front, back and close-up photographs, disclose any wear or damage, and provide measurements?",
+        ]
+      : []),
     ...questions.map((q, i) => `${i + 1}. ${q}`),
     ...(review.notes.trim()
       ? [`My notes / questions:\n${review.notes.trim()}`]
@@ -55,6 +63,8 @@ export function revisionChanges(before: Item, after: Item): string[] {
     return ["Different item: previous decisions do not carry over."];
   const changes: string[] = [];
   if (before.title !== after.title) changes.push("Item title changed.");
+  if (before.category !== after.category)
+    changes.push("Garment category changed; the old preview cannot be reused.");
   if (before.description !== after.description)
     changes.push("Seller description changed.");
   if (before.declaration !== after.declaration)
