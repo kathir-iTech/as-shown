@@ -109,6 +109,45 @@ test("own-item rack filters, persists decisions/collections, reorders and remove
       page.getByRole("button", { name: "Back", exact: true }),
     ).toHaveCount(0);
   }
+  const removedId = decodeURIComponent(
+    new URL(page.url()).pathname.split("/")[2],
+  );
+  const removedSource = (await stored(page, "record:" + removedId)) as {
+    item: { contentDigest: string };
+  };
+  const unfinishedKeys = [
+    "seller-draft:" + removedSource.item.contentDigest,
+    "seller-draft:earlier-revision-test",
+  ];
+  await page.evaluate(
+    ({ keys, id }) =>
+      new Promise<void>((resolve, reject) => {
+        const request = indexedDB.open("asshown-local-v1", 1);
+        request.onsuccess = () => {
+          const db = request.result;
+          const tx = db.transaction("records", "readwrite");
+          // Exercise both legacy digest association and explicit owner association.
+          tx.objectStore("records").put(
+            { description: "unfinished legacy edit" },
+            keys[0],
+          );
+          tx.objectStore("records").put(
+            { description: "unfinished older revision", ownerItemId: id },
+            keys[1],
+          );
+          tx.oncomplete = () => {
+            db.close();
+            resolve();
+          };
+          tx.onerror = () => {
+            db.close();
+            reject(new Error("Draft fixture failed"));
+          };
+        };
+        request.onerror = () => reject(new Error("Storage failed"));
+      }),
+    { keys: unfinishedKeys, id: removedId },
+  );
   await page
     .getByRole("banner")
     .getByRole("link", { name: "My rack", exact: true })
@@ -151,6 +190,8 @@ test("own-item rack filters, persists decisions/collections, reorders and remove
     .getByRole("button", { name: "Remove from device", exact: true })
     .click();
   await expect(page.locator(".rack-card")).toHaveCount(1);
+  for (const key of unfinishedKeys)
+    await expect.poll(() => stored(page, key)).toBeUndefined();
   await page.reload();
   await expect(page.locator(".rack-card")).toHaveCount(1);
   expect(submissions).toBe(0);

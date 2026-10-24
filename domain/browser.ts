@@ -458,15 +458,23 @@ export async function removeRackRecord(id: string): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction("records", "readwrite");
       const store = tx.objectStore("records");
+      const source = store.get("record:" + id);
+      source.onsuccess = () => {
+        const digest = (source.result as Bundle | undefined)?.item
+          .contentDigest;
+        if (digest) store.delete("seller-draft:" + digest);
+      };
       const cursor = store.openCursor();
       cursor.onsuccess = () => {
         const row = cursor.result;
         if (!row) return;
         const key = String(row.key);
-        const value = row.value as Bundle | undefined;
+        const value = row.value as
+          (Bundle & { ownerItemId?: string }) | undefined;
         if (
           ["record:" + id, "rack:" + id, "look:" + id].includes(key) ||
           key.startsWith("pending:" + id + ":") ||
+          (key.startsWith("seller-draft:") && value?.ownerItemId === id) ||
           (key === "draft" && value?.item?.itemId === id)
         )
           row.delete();

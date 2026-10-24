@@ -43,6 +43,7 @@ const issueSchema = z.object({
   needsReview: z.boolean().optional(),
 });
 const draftSchema = z.object({
+  ownerItemId: z.string().max(80).optional(),
   title: z.string().max(120),
   description: z.string().max(1500),
   declaration: z.enum(["", "declared-flaws", "no-known-flaws"]),
@@ -143,6 +144,7 @@ export function Editor({
     setDraftMessage("Saving draft on this device…");
     const timer = setTimeout(() => {
       void putLocal(draftKey, {
+        ownerItemId: existing?.item.itemId,
         title,
         description,
         declaration,
@@ -170,6 +172,7 @@ export function Editor({
     hydrated,
     busy,
     draftKey,
+    existing?.item.itemId,
   ]);
   function beginWork() {
     pendingOperations.current++;

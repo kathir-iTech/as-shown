@@ -393,6 +393,9 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
             onRemoved={(id) => {
               sessionRecords.current.delete(id);
               if (bundle?.item.itemId === id) setBundle(undefined);
+              void getLocal<Bundle>("draft")
+                .then((value) => setDraft(!!value))
+                .catch(() => setDraft(false));
             }}
           />
         )}
