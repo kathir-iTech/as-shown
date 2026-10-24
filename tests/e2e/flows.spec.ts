@@ -176,6 +176,7 @@ test("seller creates a no-known-flaws item and a revision resets old review with
     page.getByRole("radio", { name: "Not reviewed", exact: true }),
   ).toBeChecked();
   await page.getByRole("button", { name: "Reuse earlier style image" }).click();
+  await page.getByRole("tab", { name: "Try on", exact: true }).click();
   await expect(
     page.getByText("Recorded YouCam example", { exact: true }),
   ).toBeVisible();
