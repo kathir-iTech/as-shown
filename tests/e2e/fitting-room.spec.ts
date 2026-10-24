@@ -96,6 +96,7 @@ test("own-item rack filters, persists decisions/collections, reorders and remove
     ["Vintage trousers", "lower_body"],
   ]) {
     await upload(page, title, category);
+    await page.getByRole("tab", { name: "Inspect", exact: true }).click();
     await expect(
       page.getByRole("heading", {
         name: "Condition information not supplied.",
@@ -211,6 +212,9 @@ for (const [category, title, guidance] of [
       page.getByRole("heading", { name: title, exact: true }),
     ).toBeVisible();
     await page
+      .getByRole("button", { name: "Close preview form", exact: true })
+      .click();
+    await page
       .getByRole("button", { name: "Preview on me", exact: true })
       .click();
     await expect(page.locator(".consent-panel")).toContainText(guidance);
@@ -251,9 +255,11 @@ test("Quick Try binds consent/category, keeps the actual controlled result only 
   );
   await upload(page, "My own trousers", "lower_body");
   const id = decodeURIComponent(new URL(page.url()).pathname.split("/")[2]);
+  await page.getByRole("tab", { name: "Inspect", exact: true }).click();
   await page
     .getByLabel("Your questions & notes")
     .fill("controlled private buyer question");
+  await page.getByRole("tab", { name: "Try on", exact: true }).click();
   await page
     .locator(".shopper-picker input[type=file]")
     .setInputFiles("public/samples/shopper.jpg");
@@ -271,6 +277,7 @@ test("Quick Try binds consent/category, keeps the actual controlled result only 
     page.getByText("Live YouCam result", { exact: true }),
   ).toBeVisible();
   expect(await stored(page, "look:" + id)).toBeUndefined();
+  await page.getByRole("tab", { name: "Save", exact: true }).click();
   const save = page.getByRole("checkbox", {
     name: /Keep this generated look in My Rack/,
   });
@@ -283,10 +290,23 @@ test("Quick Try binds consent/category, keeps the actual controlled result only 
   expect(draft.preview).toBeUndefined();
   expect(draft.result).toBeUndefined();
   expect(draft.shopper).toBeUndefined();
+  await page.getByRole("button", { name: "Edit record", exact: true }).click();
+  const edit = page.getByRole("dialog", { name: "Edit your piece." });
+  await edit.getByLabel("Name", { exact: true }).fill("Renamed trousers");
+  await edit.getByRole("button", { name: "Save piece", exact: true }).click();
+  await expect(edit).not.toBeVisible();
+  const revised = (await stored(page, "record:" + id)) as {
+    item: { contentDigest: string };
+  };
+  const retained = (await stored(page, "look:" + id)) as {
+    preview: { itemDigest: string };
+  };
+  expect(retained.preview.itemDigest).toBe(revised.item.contentDigest);
   await page.reload();
   await expect(
     page.getByText("Live YouCam result", { exact: true }),
   ).toBeVisible();
+  await page.getByRole("tab", { name: "Save", exact: true }).click();
   await expect(save).toBeChecked();
   await save.uncheck();
   await expect.poll(() => stored(page, "look:" + id)).toBeUndefined();
@@ -297,6 +317,7 @@ test("Quick Try exports a verifiable reference package with missing-condition di
   page,
 }, info) => {
   await upload(page, "My source photo");
+  await page.getByRole("tab", { name: "Save", exact: true }).click();
   const waiting = page.waitForEvent("download");
   await page
     .getByRole("button", { name: "Export reference only", exact: true })
@@ -366,6 +387,7 @@ test("seller collection links expose read capabilities only and recipients can i
   await expect(
     page.getByRole("heading", { name: "The rust linen shirt", exact: true }),
   ).toBeVisible();
+  await page.getByRole("tab", { name: "Inspect", exact: true }).click();
   await page
     .getByLabel("Your questions & notes")
     .fill("private-buyer-note-never-shared");
@@ -437,6 +459,7 @@ test("seller collection links expose read capabilities only and recipients can i
     await expect(
       other.getByRole("heading", { name: "The rust linen shirt", exact: true }),
     ).toBeVisible();
+    await other.getByRole("tab", { name: "Inspect", exact: true }).click();
     await expect(other.getByLabel("Your questions & notes")).toHaveValue("");
     await expect(
       other.getByText("Recorded YouCam example", { exact: true }),

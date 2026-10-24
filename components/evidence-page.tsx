@@ -64,8 +64,8 @@ export function EvidencePage() {
             Historical release evidence
           </a>
           {" · "}
-          <a href="https://github.com/kathir-iTech/as-shown/blob/main/docs/FITTING_ROOM.md">
-            Fitting-room workflow and current verification
+          <a href="https://github.com/kathir-iTech/as-shown/blob/main/docs/USABILITY_RELEASE.md">
+            Focused workflow and current verification
           </a>
         </p>
       </section>

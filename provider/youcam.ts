@@ -749,12 +749,23 @@ async function status(claims: Claims): Promise<any> {
 export async function previewStatus(request: Request): Promise<Response> {
   const claims = await runClaims(request);
   const data = await status(claims);
+  if (data.task_status === "error") {
+    // The upstream task result is deliberately not logged: it may carry signed
+    // image URLs or other private data. This classification is safe to surface.
+    console.error(
+      JSON.stringify({
+        event: "preview-task-failed",
+        code: "PROVIDER_TASK_FAILED",
+      }),
+    );
+  }
   return json({
     state: data.task_status,
     ...(data.task_status === "error"
       ? {
+          code: "PROVIDER_TASK_FAILED",
           message:
-            "YouCam could not generate this preview. No result has been substituted and no retry was made.",
+            "YouCam could not complete this try-on. Check that the category matches the piece and your adult photo clearly shows the required body area. No automatic retry was made.",
         }
       : {}),
   });

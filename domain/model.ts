@@ -18,13 +18,13 @@ export const CATEGORY_LABELS: Record<Category, string> = {
 };
 export const CATEGORY_GUIDANCE: Record<Category, string> = {
   upper_body:
-    "One adult, facing forward. Keep your torso visible and arms away from your clothing.",
+    "One adult, facing forward. Keep your torso visible, without bags or objects covering it.",
   lower_body:
-    "Use a full-length adult photo with both legs and feet visible. Use a reference showing one pair of trousers or one skirt.",
+    "Use a full-length adult photo with both legs and feet visible. No bags or objects covering the outfit.",
   full_body:
-    "Use a full-length adult photo, head to feet, with arms away from the body. Show the whole dress or outfit in the reference.",
+    "One adult, head to feet, with arms away from the body. Keep the whole outfit visible.",
   shoes:
-    "Use a full-length adult photo with both feet clearly visible. Show one matching pair of shoes in the reference.",
+    "One full-length adult with both feet clearly visible. Use a reference of one matching pair of shoes.",
 };
 const versionSchema = z.union([z.literal(1), z.literal(2), z.literal(3)]);
 const declarationSchema = z.enum([

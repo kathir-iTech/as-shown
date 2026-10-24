@@ -314,7 +314,7 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
               href={"/inspect/" + encodeURIComponent(bundle.item.itemId)}
               aria-current={screen === "work" ? "page" : undefined}
             >
-              Current record
+              Your piece
             </Link>
           )}
           <Link href="/examples">Demos</Link>
@@ -506,13 +506,12 @@ export function AsShownApp({ children }: { children?: ReactNode }) {
         <Link className="wordmark" href="/">
           as<span className="brand-thread">-</span>shown
         </Link>
-        <p>The look isn’t the whole story.</p>
         <div>
           <span>Powered by YouCam Clothes VTO V3</span>
           <Link href="/storefront">
             Demo storefront <ArrowUpRight size={14} />
           </Link>
-          <Link href="/evidence">How it works & release evidence</Link>
+          <Link href="/evidence">How it works</Link>
           <Link href="/privacy">Privacy & limits</Link>
         </div>
       </footer>

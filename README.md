@@ -1,39 +1,24 @@
 # As-Shown
 
-**Try on your next thrift find.**
+Try on a secondhand find. Keep the original in view.
 
-An upload-first secondhand fitting room. Bring an authorized garment photograph, add your own photo, explicitly approve the two-image YouCam preview, and keep the original reference beside the generated look. My Rack organizes your own pieces—not a three-item public shop. Seller records add original condition evidence, revisions and portable inspection decisions.
+[Open the app](https://as-shown.vercel.app) · [Try a recorded demo](https://as-shown.vercel.app/examples/linen-shirt) · [Checks](https://github.com/kathir-iTech/as-shown/actions)
 
-This is a limited-credit, non-commercial hackathon prototype—not a marketplace, defect detector, authenticity service, sizing tool or fit guarantee.
+![Reviewing a garment and the selected adult photo before generation](docs/images/fitting-room-desktop.png)
 
-## Try the product
+## One piece, three tools
 
-Website: [as-shown.vercel.app](https://as-shown.vercel.app) · [Source repository](https://github.com/kathir-iTech/as-shown)
+1. **Try on:** upload an authorized garment photograph, select its category and add an adult photo. Nothing goes to YouCam until you explicitly approve the two inputs.
+2. **Inspect:** check original source photos, seller disclosures and close-ups when available. Keep private questions; missing condition information stays missing.
+3. **Save:** optionally retain the generated look on this device, or export the actual photos and notes as a verified ZIP or standalone offline HTML.
 
-![As-Shown upload-first fitting room: bring your own garment photograph](docs/images/studio-desktop.png)
+My Rack holds your own pieces, shortlists and collections. The three built-in garments are synthetic examples—not the available inventory.
 
-Previously named AsShown. The old website remains available for browser-local records saved on that origin; export there and import here to move a record. The hyphenated name does not change the archive format, consent-policy identifiers or existing storage keys. Historical evidence retains the names and URLs that were actually tested.
+Sellers can add versioned condition records and publish bounded, expiring, revocable seller-only links. Personal looks and buyer notes are excluded.
 
-See [the final technical handoff](docs/FINAL_READINESS.md) for the completed verification, public test run, financial boundaries and honest limitations.
+## Run locally
 
-- Try your own garment with one photo; no invented seller declaration or mandatory three-photo seller form. Quick Try explicitly records condition as not supplied.
-- Organize a device-local rack with search, category/decision/collection filters, shortlists, named collections, keyboard reorder and confirmed removal. Boundaries: 40 source records / 100 MB of source photographs; optional saved generated looks have a separate 50 MB limit.
-- Use category-specific guidance and provider payloads for tops/layers, bottoms, full looks/dresses and shoes. This is not broad accuracy or fit validation.
-- Keep personal input photos in memory only. Generated looks return after reopening only if separately opted into device-local storage. No personal cloud library.
-- Explore the three optional completed demos without supplying a photograph or API credential; these are examples, not the available inventory.
-- Create a seller record with a reference, front/back views and an explicit condition declaration. Every declared issue needs a linked close-up.
-- Export a seller-only item package and open it in another browser context.
-- Deliberately approve a live preview. Only the prepared shopper image and garment reference go to YouCam.
-- Compare style and original evidence simultaneously, mark personal preferences, and save a private decision package or standalone script-free HTML with embedded photographs.
-- Optionally publish a 24-hour seller-only link. Publication creates a separate metadata-free revision, excludes personal previews/notes, and supplies a private revocation link. Local packages require no cloud storage.
-- Combine up to eight already-published seller read links into one shared collection. No new photo upload; each record retains its existing expiry/revocation/quota. Management capabilities, personal looks and notes never enter the collection URL.
-- Zoom source evidence in the inspector, locate seller-marked regions, prepare a seller-question draft from your own decisions, and see what changed between revisions. None of these helpers uses a general-purpose AI model.
-
-All public sample people, garments and condition examples are synthetic. Recorded previews are actual YouCam API outputs, not mocked API responses. See [the asset ledger](docs/ASSET_LEDGER.md) and [v4 provenance](docs/V4_ASSETS.md).
-
-## Local setup
-
-Node.js 24 LTS and npm are recommended. Dependencies are exact-version pinned in `package-lock.json`.
+Node.js 24 and npm:
 
 ```sh
 npm ci --ignore-scripts
@@ -41,23 +26,9 @@ node scripts/setup-local.mjs
 npm run dev
 ```
 
-Open the Local URL printed by Next.js. The recorded example, record editor and package functions work without an API key. `setup-local` creates an ignored `.env.local`, preserves existing values and generates a token-signing secret without printing it.
+Recorded demos, editing and exports work without an API key. Live generation is off by default. [Setup and free-tier boundaries](docs/LOCAL_SETUP.md) cover optional provider, ledger and storage configuration. Never commit credentials.
 
-For live previews, privately edit `.env.local`:
-
-- `YOUCAM_API_KEY`: your own authorized YouCam API key.
-- Keep `YOUCAM_API_BASE_URL=https://yce-api-01.makeupar.com`.
-- Enable `YOUCAM_ALLOW_GENERATION` and `YOUCAM_PREPAID_ONLY_CONFIRMED` **only after** verifying prepaid/free units and disabling automatic purchases. Defaults are false.
-- `ASSHOWN_UNIT_RESERVE` defaults to 100 and cannot be lower than 100 in this build.
-- Configure `KV_REST_API_URL` and `KV_REST_API_TOKEN` privately for an authorized Upstash Redis instance. The deployed project uses Free with auto-upgrades and eviction disabled. Missing ledger access disables live generation; recorded examples still work.
-- `ASSHOWN_LIFETIME_UNIT_CAP` defaults to 800 and cannot exceed 800. This app-only allowance is atomically reserved. Only a confirmed failure before task submission releases its reservation, once; submitted or uncertain requests retain theirs.
-- Optional hosted links require an authorized private Vercel Blob store (`BLOB_STORE_ID`, or a private `BLOB_READ_WRITE_TOKEN`), the same Redis ledger, `ASSHOWN_SHARE_ENABLED=true`, and a strong `CRON_SECRET` for daily housekeeping. Leave sharing disabled without these. Never enable paid upgrades.
-
-Do not put credentials in chat, source, command arguments, screenshots, public logs, or a `NEXT_PUBLIC_` variable. A ChatGPT subscription is not an API subscription; this product uses no separately billed general-purpose LLM API.
-
-The live path rechecks current V3 pricing (no more than two units per result) and active balance before creating a task. A durable intent ledger prevents concurrent copies of one intent from creating another task during its retention window. Known tasks can be recovered without generating again. It has no checkout, top-up, automatic paid fallback or task-creation retry. Ambiguous outcomes without a known task stop and need operator investigation.
-
-## Checks and production build
+## Verify
 
 ```sh
 npm run typecheck -- --incremental false
@@ -67,39 +38,17 @@ npm test
 npx playwright install chromium
 npm run test:e2e
 npm run build
-npm start
+npm audit --omit=dev
 ```
 
-On Windows the browser tests use installed Google Chrome. On other systems install Playwright Chromium as shown. Ordinary tests use local assets and mocked provider responses, not free units. The separately recorded live checks are described in release evidence; test fixtures are not presented as live results.
+Ordinary tests use controlled provider responses, not API units. Real provider evidence is recorded separately. [Current usability release](docs/USABILITY_RELEASE.md) · [Earlier fitting-room evidence](docs/FITTING_ROOM.md)
 
-To test an already deployed site, set `ASSHOWN_TEST_URL` to its HTTPS origin before running the browser suite. The suite does not generate a real preview: the submission-failure case intercepts the creation request.
+## Know the limits
 
-## Verify an exported package
+This is a limited-credit, non-commercial functional prototype, not a fit guarantee, defect detector, authenticity service or marketplace. Provider failures remain possible. A generated image cannot establish a garment’s condition.
 
-```sh
-npm run verify-package -- /path/to/as-shown-decision-r1.zip
-```
+Personal input photos stay in memory. Generated looks require separate local-save consent. YouCam processes approved images under its own [privacy policy](https://www.makeupar.com/perfectbeauty/youcam/privacy-policy-api); clearing this app does not delete provider-held data or downloaded files.
 
-The verifier checks bounded archive structure, manifest/file agreement, image headers and record/review/preview bindings. It never executes the imported HTML. Passing does **not** certify an unknown package's HTML as safe to open: import into As-Shown and re-export to regenerate the script-free viewer. Digests do not establish seller identity, truthfulness, trusted time or physical condition; someone replacing both data and digests can recompute them.
+[Architecture and limits](docs/ARCHITECTURE.md) · [Asset provenance](docs/ASSET_LEDGER.md) · [Security dependency notes](docs/DEPENDENCY_SECURITY.md) · [MIT license](LICENSE)
 
-## Architecture and privacy
-
-Next.js 16 / React 19 / TypeScript, Zod, Sharp and fflate. Records and autosaved drafts use browser memory and IndexedDB. Upstash Redis stores operational reservations, digest commitments, recovery information, publication metadata and pseudonymous rate counters—not photos or buyer notes. Optional private Blob storage holds only explicitly published seller copies; there is no personal cloud-photo library, account system, analytics SDK or general-purpose LLM dependency. Bricolage Grotesque and Manrope are self-hosted OFL fonts.
-
-The server validates a minimal structural admission containing identifiers, dimensions, sizes and digests—not seller descriptions, flaw annotations or buyer notes. The complete record is checked in the browser. A structural commitment is not independent verification of withheld source photos. Signed, session-bound run tokens allow status/result retrieval without accepting arbitrary result URLs from the client.
-
-The provider processes the two approved images. Its policy describes USA storage and generally 30-day retention with exceptions. App-local clearing does not erase provider data, platform logs, backups or previous downloads. Read [architecture and limitations](docs/ARCHITECTURE.md) and the in-app Privacy & limits page.
-
-Atomic Lua enforces this app's aggregate unit allowance and session/network hourly limits. It cannot transact with the provider's balance or other applications, and is not comprehensive abuse prevention or an exactly-once distributed transaction. Request records expire in 24 hours; recovery tokens and hourly counter keys last two hours; the aggregate allowance persists. The hard money boundary remains an operator-verified prepaid arrangement with automatic purchases disabled. No unlimited-live-service promise is made.
-
-## Deployment
-
-Deploy only to the explicitly authorized Vercel project on an eligible personal/non-commercial Hobby arrangement. Set secrets server-side; use a separate signing secret per environment and verify project/team selection before configuring it. Do not buy domains, enable paid integrations or upgrade a plan. See [.env.example](.env.example).
-
-`GET /api/health` reports configuration capability, not a promise of provider uptime or remaining credits. The server logs safe classifications only. No raw provider body, signed result URL, personal image, API key or buyer note is intentionally logged.
-
-## Ownership and scope
-
-MIT for original code; retain dependency licenses. This project was built with AI-assisted research, design, coding and testing. Generated asset origins and limitations are disclosed. There is no claim of absolute novelty, proven commercial impact, independent user validation, universal accessibility certification, or a guaranteed hackathon win.
-
-The owner handles the video and final Devpost submission. Technical completion and outstanding checks are documented separately; a working prototype is not a promise of permanent correctness or unlimited free hosting.
+Built with AI-assisted research, design, coding and testing. No commercial impact, universal accuracy, absolute novelty or winning guarantee is claimed.

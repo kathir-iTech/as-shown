@@ -56,7 +56,7 @@ textarea {
 .site-header nav a,
 .site-header nav button,
 .site-header .button {
-  font-size: 14px;
+  font-size: 15px;
 }
 .site-header nav a {
   padding: 8px 0;
@@ -459,15 +459,26 @@ dialog::backdrop {
   padding-top: 12px;
 }
 .site-footer {
-  padding: 32px 4%;
+  padding: 24px 4%;
   margin-top: 36px;
   align-items: center;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 24px;
+}
+.site-footer > div {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px 24px;
+  min-width: 0;
 }
 .site-footer p,
 .site-footer > div,
 .site-footer a:not(.wordmark),
 .site-footer span {
-  font-size: 14px;
+  font-size: 15px;
 }
 .global-notice {
   font-size: 15px;
@@ -1429,19 +1440,19 @@ dialog::backdrop {
     position: static;
     height: auto;
     max-height: none;
-    padding: 14px 5%;
+    padding: 8px 5%;
     border-right: 0;
     border-bottom: 1px solid var(--line);
     display: flex;
     flex-direction: row;
     align-items: stretch;
-    gap: 15px;
+    gap: 10px;
     overflow: hidden;
   }
   .rail-add {
-    width: 85px;
+    width: 58px;
     flex-shrink: 0;
-    padding: 10px 8px;
+    padding: 6px;
     justify-content: center;
   }
   .rail-items {
@@ -1451,11 +1462,11 @@ dialog::backdrop {
     gap: 12px;
   }
   .rail-items button {
-    width: 75px;
+    width: 58px;
     flex-shrink: 0;
   }
   .rail-items button img {
-    height: 72px;
+    height: 46px;
   }
   .rail-items button > span {
     overflow: hidden;
@@ -1570,8 +1581,14 @@ dialog::backdrop {
     height: 300px;
   }
   .site-footer {
-    padding: 28px 5%;
-    gap: 24px;
+    padding: 24px 5%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .site-footer > div {
+    justify-content: flex-start;
   }
   .site-footer p {
     margin: 0;

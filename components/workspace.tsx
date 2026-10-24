@@ -11,7 +11,6 @@ import {
   LoaderCircle,
   LockKeyhole,
   RefreshCw,
-  ShieldCheck,
   Upload,
   X,
 } from "lucide-react";
@@ -36,14 +35,16 @@ import {
   saveDraft,
   download,
   rememberLook,
+  prepareReference,
 } from "@/domain/browser";
 import { savePackage, saveHtml } from "@/domain/archive-client";
-import { prepareReference } from "@/domain/browser";
 import { ComparisonStage } from "./comparison-stage";
 import { SellerPublisher } from "./seller-publisher";
 import { Photo } from "./photo";
 import { DecisionDesk } from "./decision-desk";
 import { EvidenceInspector } from "./evidence-inspector";
+import { QuickEdit } from "./quick-edit";
+import styles from "./workspace.module.css";
 
 type Pending = {
   intent?: string;
@@ -93,7 +94,14 @@ export function Workspace({
   const [focused, setFocused] = useState<Flaw>();
   const shopperRead = useRef(0);
   const pendingKey = `pending:${item.itemId}:${item.contentDigest}`;
-  const [consentOpen, setConsentOpen] = useState(openLive);
+  const initialLiveResult = useRef(
+    bundle.preview?.mode === "live" && !!bundle.result,
+  );
+  const [consentOpen, setConsentOpen] = useState(openLive || !bundle.result);
+  const [view, setView] = useState<"try" | "inspect" | "save">("try");
+  const [quickEditing, setQuickEditing] = useState(false);
+  const [errorCode, setErrorCode] = useState("");
+  const shopperInput = useRef<HTMLInputElement>(null);
   const [shopper, setShopper] = useState<Uint8Array | undefined>(
     initialShopper,
   );
@@ -110,6 +118,7 @@ export function Workspace({
   const [inspected, setInspected] = useState<Flaw>();
   const lock = useRef(false);
   const active = stage === "uploading" || stage === "running";
+  const unresolved = active || stage === "unknown" || stage === "paused";
   const quick = item.declaration === "not-supplied";
   useEffect(() => {
     let cancelled = false;
@@ -133,7 +142,10 @@ export function Workspace({
     void getLocal<Pending>(pendingKey)
       .then(async (p) => p || (await getLocal<Pending>("pending")))
       .then((p) => {
-        if (p?.itemDigest === item.contentDigest) {
+        if (
+          p?.itemDigest === item.contentDigest &&
+          !(p.stage === "complete" && initialLiveResult.current)
+        ) {
           setPending(p);
           setStage(p.token ? "paused" : "unknown");
           setMessage(
@@ -162,6 +174,7 @@ export function Workspace({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: pending!.token }),
+          signal: AbortSignal.timeout(30000),
         });
         const state = await status.json();
         if (cancelled) return;
@@ -171,7 +184,13 @@ export function Workspace({
           );
         if (state.state === "error") {
           setStage("error");
-          setMessage(state.message);
+          setMessage(
+            state.message ||
+              "YouCam did not create a preview. Check your photos and category before trying again.",
+          );
+          setErrorCode(state.code || "PROVIDER_TASK_FAILED");
+          setConsent(false);
+          setPending(undefined);
           await putLocal(pendingKey, undefined);
           return;
         }
@@ -180,6 +199,7 @@ export function Workspace({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ token: pending!.token }),
+            signal: AbortSignal.timeout(70000),
           });
           if (!response.ok) {
             const body = await response.json();
@@ -210,9 +230,7 @@ export function Workspace({
           setConsentOpen(false);
           setShopper(undefined);
           setConsent(false);
-          setMessage(
-            "Your real YouCam result is ready. Review original condition evidence beside it.",
-          );
+          setMessage("Your YouCam look is ready.");
           // Retain only the known capability, never the personal input/result.
           // A completed image can be re-fetched after refresh until token expiry.
           await putLocal(pendingKey, { ...pending, stage: "complete" });
@@ -249,7 +267,9 @@ export function Workspace({
     setShopper(undefined);
     setPreparing(true);
     setMessage("");
+    if (!unresolved) setStage("idle");
     setConsent(false);
+    setErrorCode("");
     onShopperChange(undefined);
     try {
       const prepared = await prepareShopper(file);
@@ -267,13 +287,12 @@ export function Workspace({
     }
   }
   async function start() {
-    if (lock.current || !shopper || !consent || active || stage === "unknown")
-      return;
+    if (lock.current || !shopper || !consent || unresolved) return;
     lock.current = true;
     setStage("uploading");
-    setMessage(
-      "Validating the record, preparing the session, then sending only the two approved images.",
-    );
+    setConsent(false);
+    setErrorCode("");
+    setMessage("Sending your two approved photos…");
     let sent = false;
     try {
       await verifyBundle(bundle);
@@ -290,6 +309,7 @@ export function Workspace({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: "{}",
+        signal: AbortSignal.timeout(15000),
       });
       if (!session.ok) {
         const p = await session.json();
@@ -331,6 +351,7 @@ export function Workspace({
       });
       const result = await response.json();
       if (!response.ok) {
+        setErrorCode(result.code || "PREVIEW_NOT_CREATED");
         if (result.code === "SUBMISSION_UNKNOWN") {
           setStage("unknown");
           setMessage(result.message);
@@ -351,9 +372,13 @@ export function Workspace({
       setPending(next);
       setStage("running");
       setMessage(
-        "YouCam is processing this known task. It is safe to wait; no repeated task is being created.",
+        "YouCam is creating your look. You can keep inspecting the piece.",
       );
     } catch (e) {
+      if (!sent) {
+        setPending(undefined);
+        await putLocal(pendingKey, undefined).catch(() => {});
+      }
       setStage(sent ? "unknown" : "error");
       setMessage(
         sent
@@ -400,6 +425,7 @@ export function Workspace({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ intent: pending.intent }),
+        signal: AbortSignal.timeout(30000),
       });
       const data = await response.json();
       if (!response.ok)
@@ -441,20 +467,64 @@ export function Workspace({
     (f) => bundle.review.decisions[f.id] !== "unreviewed",
   ).length;
   const synthetic = item.assets.some((a) => a.origin === "synthetic-demo");
-  return (
-    <section className="workspace">
-      <div className="workspace-top">
-        <button className="text-button" onClick={onHome}>
-          <ArrowLeft size={16} /> All stories
-        </button>
-        <div>
-          <span className="pill outline">Revision {item.revision}</span>
-          <button className="text-button" onClick={onEdit} disabled={active}>
-            <FilePenLine size={15} />
-            Edit record
+  const taskNotice = message && (
+    <div
+      className={
+        "task-notice " +
+        (stage === "error" || stage === "unknown" || stage === "paused"
+          ? "is-warning"
+          : "")
+      }
+      role={stage === "error" ? "alert" : "status"}
+    >
+      {stage === "error" && <strong>No new preview was created.</strong>}
+      <p>{message}</p>
+      {errorCode && (
+        <details>
+          <summary>Technical details</summary>
+          <code>{errorCode}</code>
+        </details>
+      )}
+      {stage === "error" && !unresolved && (
+        <div className="task-actions">
+          <button
+            className="text-button"
+            onClick={() => {
+              setConsentOpen(true);
+              requestAnimationFrame(() => shopperInput.current?.click());
+            }}
+          >
+            Change my photo <Upload size={15} />
           </button>
+          {quick && (
+            <button
+              className="text-button"
+              onClick={() => setQuickEditing(true)}
+            >
+              Check piece & category <ArrowRight size={15} />
+            </button>
+          )}
         </div>
-      </div>
+      )}
+      {stage === "unknown" && pending?.intent && (
+        <button className="button secondary" onClick={() => void recover()}>
+          <RefreshCw size={15} />
+          Recover submitted request
+        </button>
+      )}
+      {stage === "paused" && pending?.token && (
+        <button
+          className="button secondary"
+          onClick={() => setStage("running")}
+        >
+          <RefreshCw size={15} />
+          Check the same task
+        </button>
+      )}
+    </div>
+  );
+  return (
+    <section className={"workspace " + styles.root}>
       <div className="item-heading">
         <div>
           <span className="eyebrow">
@@ -464,44 +534,88 @@ export function Workspace({
           <h1>{item.title}</h1>
           {!quick && <p>{item.description}</p>}
         </div>
-        <span className="record-tag">
-          <ShieldCheck size={20} />
-          {quick
-            ? "Your reference stays original"
-            : "Files agree with this record"}
-          <small>Not an inspection or authenticity check</small>
-        </span>
+        <div className="piece-actions">
+          <button
+            className="icon-button"
+            aria-label="Back to fitting room"
+            onClick={onHome}
+          >
+            <ArrowLeft size={18} />
+          </button>
+          {!quick && (
+            <span className="pill outline">Revision {item.revision}</span>
+          )}
+          <button
+            className="text-button"
+            onClick={() => (quick ? setQuickEditing(true) : onEdit())}
+            disabled={unresolved}
+          >
+            <FilePenLine size={17} />
+            Edit record
+          </button>
+        </div>
       </div>
       {synthetic && (
         <div className="demo-note">
           <Info size={17} />
           <span>
-            Demonstration item and photographs are synthetic.{" "}
-            {bundle.preview
-              ? "The style preview is an actual YouCam result."
-              : "No style preview has been generated for this record."}
+            Synthetic demo ·{" "}
+            {bundle.preview ? "actual YouCam output" : "no generated result"}
           </span>
         </div>
       )}
-      <div className="studio-progress" aria-label="Inspection workflow">
-        <span>
-          <b>01</b> Source record <Check size={14} />
-        </span>
-        <span>
-          <b>02</b> Style preview{" "}
-          {bundle.preview ? <Check size={14} /> : <small>optional</small>}
-        </span>
-        <span>
-          <b>03</b> Condition review{" "}
-          <small>
-            {quick ? "not supplied" : `${reviewed}/${item.flaws.length}`}
-          </small>
-        </span>
-        <span>
-          <b>04</b> Keep your decision
+      <div
+        className="workspace-tabs"
+        role="tablist"
+        aria-label="Fitting room tools"
+      >
+        {(
+          [
+            ["try", "Try on"],
+            ["inspect", "Inspect"],
+            ["save", "Save"],
+          ] as const
+        ).map(([key, label], index, tabs) => (
+          <button
+            key={key}
+            id={"work-tab-" + key}
+            role="tab"
+            aria-controls={"work-panel-" + key}
+            aria-selected={view === key}
+            tabIndex={view === key ? 0 : -1}
+            onClick={() => setView(key)}
+            onKeyDown={(event) => {
+              const next =
+                event.key === "ArrowRight"
+                  ? (index + 1) % tabs.length
+                  : event.key === "ArrowLeft"
+                    ? (index + tabs.length - 1) % tabs.length
+                    : event.key === "Home"
+                      ? 0
+                      : event.key === "End"
+                        ? tabs.length - 1
+                        : -1;
+              if (next < 0) return;
+              event.preventDefault();
+              setView(tabs[next][0]);
+              document.getElementById("work-tab-" + tabs[next][0])?.focus();
+            }}
+          >
+            <span aria-hidden="true">0{index + 1}</span>
+            {label}
+          </button>
+        ))}
+        <span className="workspace-privacy">
+          <LockKeyhole size={14} /> On this device
         </span>
       </div>
-      <div className="review-layout">
+      <div
+        className="review-layout"
+        role="tabpanel"
+        id="work-panel-try"
+        aria-labelledby="work-tab-try"
+        hidden={view !== "try"}
+      >
         <div className="visual-column">
           <ComparisonStage
             bundle={bundle}
@@ -511,6 +625,7 @@ export function Workspace({
             shopper={shopper}
             processing={active}
             stage={stage}
+            showInput={consentOpen && !!shopper}
           />
           {(reference.byteLength > 1_200_000 ||
             reference.width > 4096 ||
@@ -546,7 +661,7 @@ export function Workspace({
                 setConsentOpen(true);
                 setMessage("");
               }}
-              disabled={active || stage === "unknown"}
+              disabled={active}
             >
               Preview on me <ArrowRight size={18} />
             </button>
@@ -554,42 +669,55 @@ export function Workspace({
           {consentOpen && (
             <section className="consent-panel">
               <div className="section-line">
-                <h2>Your turn.</h2>
+                <h2>{bundle.result ? "Try a new look." : "Make it yours."}</h2>
                 <button
                   className="icon-button"
                   aria-label="Close preview form"
-                  disabled={active}
+                  disabled={active || preparing}
                   onClick={() => setConsentOpen(false)}
                 >
                   <X size={19} />
                 </button>
               </div>
+              {taskNotice}
               <p>{CATEGORY_GUIDANCE[item.category]}</p>
               <div className="shopper-picker">
                 <label className="button secondary">
                   <Upload size={16} />
                   {preparing ? "Preparing locally…" : "Choose your photo"}
                   <input
+                    ref={shopperInput}
                     type="file"
                     accept="image/jpeg,image/png"
-                    disabled={active || preparing || stage === "unknown"}
+                    disabled={unresolved || preparing}
                     onChange={(e) => {
                       if (e.target.files?.[0])
                         void selectShopper(e.target.files[0]);
+                      e.target.value = "";
                     }}
                   />
                 </label>
                 <button
                   className="text-button"
-                  disabled={active || preparing || stage === "unknown"}
+                  aria-label="Use synthetic sample instead"
+                  disabled={unresolved || preparing}
                   onClick={async () => {
                     setPreparing(true);
                     setConsent(false);
+                    setShopper(undefined);
+                    onShopperChange(undefined);
+                    setErrorCode("");
+                    setMessage("");
+                    setStage("idle");
                     try {
                       const version = ++shopperRead.current;
                       const r = await fetch("/samples/shopper.jpg");
                       if (!r.ok) throw new Error();
-                      const bytes = new Uint8Array(await r.arrayBuffer());
+                      const bytes = await prepareShopper(
+                        new File([await r.arrayBuffer()], "demo-model.jpg", {
+                          type: "image/jpeg",
+                        }),
+                      );
                       if (version === shopperRead.current) {
                         setShopper(bytes);
                         onShopperChange(bytes);
@@ -601,23 +729,11 @@ export function Workspace({
                     }
                   }}
                 >
-                  Use synthetic sample instead
+                  Use demo model instead
                 </button>
               </div>
-              {shopper && (
-                <Photo
-                  bytes={shopper}
-                  alt="Locally prepared shopper photo, not yet sent"
-                  className="shopper-thumbnail"
-                />
-              )}
-              <p className="small">
-                Your photo is prepared locally as JPEG, with metadata removed
-                and dimensions capped at 2048 px. The personal input stays in
-                memory, not a saved draft.
-              </p>
               <details className="consent-detail">
-                <summary>Where do the two images go?</summary>
+                <summary>Photo privacy & processing</summary>
                 <LockKeyhole size={20} />
                 <p>
                   Only your prepared photo and this record’s garment reference
@@ -640,26 +756,20 @@ export function Workspace({
                 <input
                   type="checkbox"
                   checked={consent}
-                  disabled={active || !shopper}
+                  disabled={unresolved || !shopper}
                   onChange={(e) => setConsent(e.target.checked)}
                 />
                 <span>
-                  I’m an adult and have permission to use these images. I
-                  approve sending the two selected images for this preview and
-                  saving the item record and recovery token on this device.
-                  Expected allowance: at most 2 free units. No purchase or paid
-                  fallback.
+                  I’m an adult and have permission to use these images. Send the
+                  two selected photos to YouCam.
                 </span>
               </label>
+              <p className="preview-cost">
+                Up to 2 free units · Never auto-retried
+              </p>
               <button
                 className="button primary wide"
-                disabled={
-                  !consent ||
-                  !shopper ||
-                  preparing ||
-                  active ||
-                  stage === "unknown"
-                }
+                disabled={!consent || !shopper || preparing || unresolved}
                 onClick={() => void start()}
               >
                 {active ? (
@@ -686,43 +796,46 @@ export function Workspace({
               )}
             </section>
           )}
-          {message && (
-            <div
-              className={
-                "status-box " +
-                (stage === "error" || stage === "unknown" ? "warning" : "")
-              }
-              role="status"
-            >
-              {message}
-              {stage === "unknown" && pending?.intent && (
-                <button
-                  className="button secondary"
-                  onClick={() => void recover()}
-                >
-                  <RefreshCw size={15} />
-                  Recover submitted request
-                </button>
-              )}
-              {stage === "paused" && pending?.token && (
-                <button
-                  className="button secondary"
-                  onClick={() => setStage("running")}
-                >
-                  <RefreshCw size={15} />
-                  Check the same task
-                </button>
-              )}
+          {!consentOpen && taskNotice}
+          {!consentOpen && bundle.result && (
+            <div className="result-next">
+              <button
+                className="button primary"
+                onClick={() => {
+                  setView("save");
+                  document.getElementById("work-tab-save")?.focus();
+                }}
+              >
+                Keep this look <Download size={17} />
+              </button>
+              <button
+                className="text-button"
+                onClick={() => {
+                  setView("inspect");
+                  document.getElementById("work-tab-inspect")?.focus();
+                }}
+              >
+                Inspect the piece <ArrowRight size={17} />
+              </button>
             </div>
           )}
         </div>
+      </div>
+      <div
+        className="inspection-panel"
+        role="tabpanel"
+        id="work-panel-inspect"
+        aria-labelledby="work-tab-inspect"
+        hidden={view !== "inspect"}
+      >
         <aside className="condition-column">
           <div className="condition-heading">
-            <span className="eyebrow">CONDITION, NOT GENERATED</span>
-            <h2>Keep the details in view.</h2>
+            <h2>
+              {quick ? "Condition information not supplied." : "Look closer."}
+            </h2>
             <p>
               {quick
-                ? "Condition information not supplied. A try-on image cannot fill that gap."
+                ? "A try-on shows style, not wear or fit. Ask for original condition photos and measurements."
                 : item.flaws.length
                   ? `${reviewed} of ${item.flaws.length} declared issues reviewed`
                   : "Seller reports no known flaws; not independently inspected."}
@@ -730,12 +843,6 @@ export function Workspace({
           </div>
           {quick && (
             <section className="missing-condition">
-              <h3>Love the look? Ask for the facts.</h3>
-              <p>
-                You supplied a garment reference, not a seller inspection. Ask
-                for original front and back photos, close-ups of wear, and
-                measurements before deciding.
-              </p>
               <button className="text-button" onClick={onEdit}>
                 I’m the seller—add condition details <ArrowRight size={17} />
               </button>
@@ -813,126 +920,139 @@ export function Workspace({
               />
             </label>
             <p className="small">
-              Stays on your device or in your download. Nothing is sent to the
-              seller.
+              Private on this device. Nothing is sent to the seller.
             </p>
           </section>
         </aside>
+        <DecisionDesk bundle={bundle} />
+        {!quick && <SellerPublisher bundle={bundle} />}
       </div>
-      <DecisionDesk bundle={bundle} />
-      {!quick && <SellerPublisher bundle={bundle} />}
       <EvidenceInspector
         bundle={bundle}
         flaw={inspected}
         onClose={() => setInspected(undefined)}
       />
-      <section className="save-section">
-        <div>
-          <span className="eyebrow">TAKE THE WHOLE RECORD WITH YOU</span>
-          <h2>A decision you can reopen.</h2>
-          <p>
-            Your source photographs, the exact revision and your decisions. When
-            you generated a preview, its actual image is included.
-          </p>
-          <label className="check-label">
-            <input
-              type="checkbox"
-              checked={exportConsent}
-              onChange={(e) => setExportConsent(e.target.checked)}
-            />
-            <span>
-              I understand a decision package may contain my likeness and
-              private notes. I’ll store and share it carefully.
-            </span>
-          </label>
-        </div>
-        <div className="save-actions">
-          {bundle.result && (
-            <label className="check-label local-look-consent">
+      <div
+        role="tabpanel"
+        id="work-panel-save"
+        aria-labelledby="work-tab-save"
+        hidden={view !== "save"}
+      >
+        <section className="save-section">
+          <div>
+            <h2>Keep the whole picture.</h2>
+            <p>
+              Download the original photos, your notes
+              {bundle.result ? " and this generated look" : ""}. Reopen them
+              later, even offline.
+            </p>
+            <label className="check-label">
               <input
                 type="checkbox"
-                checked={lookSaved}
-                disabled={lookSaving}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  const previous = lookSaved;
-                  ++lookVersion.current;
-                  setLookSaved(checked);
-                  setLookSaving(true);
-                  void rememberLook(bundle, checked)
-                    .then(() => {
-                      onNotice(
-                        checked
-                          ? "Generated look saved only on this device. Your input photo was not saved. Remove it here or clear device data at any time."
-                          : "Saved generated look removed from this device. The open session and downloaded copies remain.",
-                      );
-                    })
-                    .catch((error) => {
-                      setLookSaved(previous);
-                      onNotice(
-                        error instanceof Error
-                          ? error.message
-                          : "The saved-look preference could not be changed.",
-                      );
-                    })
-                    .finally(() => setLookSaving(false));
-                }}
+                checked={exportConsent}
+                onChange={(e) => setExportConsent(e.target.checked)}
               />
               <span>
-                Keep this generated look in My Rack on this device. It may
-                contain my likeness. Not uploaded to a cloud library; clearing
-                device data removes it.
+                I understand a decision package may contain my likeness and
+                private notes. I’ll store and share it carefully.
               </span>
             </label>
-          )}
-          <button
-            className="button primary"
-            disabled={saving || active || !exportConsent}
-            onClick={() => void save("decision")}
-          >
-            <Download size={17} />
-            Download private decision
-          </button>
-          <button
-            className="button secondary"
-            disabled={saving || active || !exportConsent}
-            onClick={() => void save("decision", true)}
-          >
-            <Download size={17} />
-            Save readable record (HTML)
-          </button>
-          <button
-            className="button secondary"
-            disabled={saving || active}
-            onClick={() => void save("item")}
-          >
-            <Download size={17} />
-            {quick ? "Export reference only" : "Export seller item only"}
-          </button>
-          <button
-            className="text-button"
-            disabled={saving || active}
-            onClick={async () => {
-              try {
-                await saveDraft(bundle);
-                onNotice(
-                  "Source record and buyer notes saved on this device. Personal photo and generated preview were not stored in the draft.",
-                );
-              } catch (e) {
-                onNotice(
-                  e instanceof Error ? e.message : "Draft could not be saved.",
-                );
-              }
-            }}
-          >
-            Save source draft on this device
-          </button>
-          <p className="small">
-            Open the HTML download directly, or keep the ZIP for verified import
-            and the full archival record.
-          </p>
-        </div>
-      </section>
+          </div>
+          <div className="save-actions">
+            {bundle.result && (
+              <label className="check-label local-look-consent">
+                <input
+                  type="checkbox"
+                  checked={lookSaved}
+                  disabled={lookSaving}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    const previous = lookSaved;
+                    ++lookVersion.current;
+                    setLookSaved(checked);
+                    setLookSaving(true);
+                    void rememberLook(bundle, checked)
+                      .then(() => {
+                        onNotice(
+                          checked
+                            ? "Generated look saved only on this device. Your input photo was not saved. Remove it here or clear device data at any time."
+                            : "Saved generated look removed from this device. The open session and downloaded copies remain.",
+                        );
+                      })
+                      .catch((error) => {
+                        setLookSaved(previous);
+                        onNotice(
+                          error instanceof Error
+                            ? error.message
+                            : "The saved-look preference could not be changed.",
+                        );
+                      })
+                      .finally(() => setLookSaving(false));
+                  }}
+                />
+                <span>
+                  Keep this generated look in My Rack on this device. Contains
+                  my likeness; no cloud upload.
+                </span>
+              </label>
+            )}
+            <button
+              className="button primary"
+              disabled={saving || active || !exportConsent}
+              onClick={() => void save("decision")}
+            >
+              <Download size={17} />
+              Download private decision
+            </button>
+            <button
+              className="button secondary"
+              disabled={saving || active || !exportConsent}
+              onClick={() => void save("decision", true)}
+            >
+              <Download size={17} />
+              Save readable record (HTML)
+            </button>
+            <button
+              className="button secondary"
+              disabled={saving || active}
+              onClick={() => void save("item")}
+            >
+              <Download size={17} />
+              {quick ? "Export reference only" : "Export seller item only"}
+            </button>
+            <button
+              className="text-button"
+              disabled={saving || active}
+              onClick={async () => {
+                try {
+                  await saveDraft(bundle);
+                  onNotice(
+                    "Source record and buyer notes saved on this device. Personal photo and generated preview were not stored in the draft.",
+                  );
+                } catch (e) {
+                  onNotice(
+                    e instanceof Error
+                      ? e.message
+                      : "Draft could not be saved.",
+                  );
+                }
+              }}
+            >
+              Save source draft on this device
+            </button>
+            <p className="small">
+              HTML opens offline. ZIP can be imported back into As-Shown.
+            </p>
+          </div>
+        </section>
+      </div>
+      {quickEditing && (
+        <QuickEdit
+          bundle={bundle}
+          onClose={() => setQuickEditing(false)}
+          onSave={onChange}
+        />
+      )}
     </section>
   );
 }

@@ -225,12 +225,27 @@ export async function saveDraft(bundle: Bundle): Promise<void> {
         store.put(draft, "draft");
         const oldLook = store.get("look:" + bundle.item.itemId);
         oldLook.onsuccess = () => {
-          const saved = oldLook.result as Pick<Bundle, "preview"> | undefined;
+          const saved = oldLook.result as
+            Pick<Bundle, "preview" | "result"> | undefined;
           if (
             saved?.preview &&
             saved.preview.itemDigest !== bundle.item.contentDigest
           )
-            store.delete("look:" + bundle.item.itemId);
+            // Carry a previously opted-in image through a metadata-only
+            // revision, atomically with its source. Never opt a new image in.
+            if (
+              bundle.preview &&
+              saved.result &&
+              saved.preview.resultDigest === bundle.preview.resultDigest &&
+              saved.preview.referenceDigest ===
+                bundle.preview.referenceDigest &&
+              saved.preview.category === bundle.preview.category
+            )
+              store.put(
+                { preview: bundle.preview, result: saved.result },
+                "look:" + bundle.item.itemId,
+              );
+            else store.delete("look:" + bundle.item.itemId);
         };
       };
       tx.oncomplete = () => resolve();

@@ -12,6 +12,7 @@ import {
 } from "../domain/model";
 import { decisionBrief } from "../domain/decision";
 import { publicationCopy } from "../provider/sharing";
+import { reviseQuickTry } from "../domain/quick-revision";
 let fixture: Bundle;
 beforeAll(async () => {
   fixture = await importPackage(
@@ -38,6 +39,54 @@ async function quick(category: Category = "upper_body") {
     review: freshReview(item),
   };
 }
+it("quick edits preserve item identity, notes and unknown condition without seller evidence", async () => {
+  const original = await quick();
+  original.review.notes = "Private question";
+  const next = await reviseQuickTry(original, {
+    title: "Weekend trousers",
+    category: "lower_body",
+  });
+  expect(next.item.itemId).toBe(original.item.itemId);
+  expect(next.item.revision).toBe(original.item.revision + 1);
+  expect(next.item.createdAt).toBe(original.item.createdAt);
+  expect(next.item.declaration).toBe("not-supplied");
+  expect(next.item.flaws).toEqual([]);
+  expect(next.review.notes).toBe("Private question");
+  expect(next.review.itemDigest).toBe(next.item.contentDigest);
+  await verifyBundle(next);
+});
+it("renaming may reuse the actual image, but a category change must clear it", async () => {
+  const original = await quick();
+  const withLook: Bundle = {
+    ...original,
+    preview: {
+      ...fixture.preview!,
+      category: "upper_body",
+      itemDigest: original.item.contentDigest,
+    },
+    result: fixture.result,
+  };
+  const renamed = await reviseQuickTry(withLook, {
+    title: "Renamed find",
+    category: "upper_body",
+  });
+  expect(renamed.result).toBe(withLook.result);
+  expect(renamed.preview?.itemDigest).toBe(renamed.item.contentDigest);
+  expect(renamed.preview?.reusedFromItemDigest).toBe(
+    original.item.contentDigest,
+  );
+  const changed = await reviseQuickTry(renamed, {
+    title: "Renamed find",
+    category: "lower_body",
+  });
+  expect(changed.preview).toBeUndefined();
+  expect(changed.result).toBeUndefined();
+});
+it("quick editor cannot silently turn a seller record into an unknown-condition reference", async () => {
+  await expect(
+    reviseQuickTry(fixture, { title: "Not permitted", category: "upper_body" }),
+  ).rejects.toThrow(/seller editor/);
+});
 for (const category of [
   "upper_body",
   "lower_body",

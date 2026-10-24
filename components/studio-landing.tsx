@@ -88,7 +88,7 @@ export function StudioLanding({
             <MoveUpRight aria-hidden="true" />
           </h1>
           <p className="fit-description">
-            Your photo. Any piece you’ve found.
+            Your photo. A piece you’ve found.
             <br />
             See the look. Check the real details.
           </p>
@@ -173,8 +173,8 @@ export function StudioLanding({
               }}
             />
             <p className="upload-explainer">
-              JPEG or PNG · up to 12 MB. Use a photo you have permission to use.
-              Nothing is sent to YouCam until you approve.
+              JPEG / PNG · 12 MB max. One piece, clearly visible. Use authorized
+              adult or garment-only photos.
             </p>
           </div>
           {error && (

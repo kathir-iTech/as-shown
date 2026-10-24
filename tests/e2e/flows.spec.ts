@@ -30,12 +30,14 @@ test("recorded workflow, private export, separate-context seller import and offl
   await expect(
     page.getByText("Recorded YouCam example", { exact: true }),
   ).toBeVisible();
+  await page.getByRole("tab", { name: "Inspect", exact: true }).click();
   await page.getByRole("radio", { name: "Ask seller", exact: true }).check();
   await page
     .getByLabel("Your questions & notes")
     .fill(
       "Could you show the reverse of the cuff? <script>not executable</script>",
     );
+  await page.getByRole("tab", { name: "Save", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Download private decision" }),
   ).toBeDisabled();
@@ -101,9 +103,11 @@ test("recorded workflow, private export, separate-context seller import and offl
       exact: true,
     }),
   ).toBeVisible();
+  await buyerPage.getByRole("tab", { name: "Inspect", exact: true }).click();
   await expect(
     buyerPage.getByRole("radio", { name: "Not reviewed", exact: true }),
   ).toBeChecked();
+  await buyerPage.getByRole("tab", { name: "Save", exact: true }).click();
   await expect(
     buyerPage.getByRole("button", { name: "Download private decision" }),
   ).toBeDisabled();
@@ -158,6 +162,7 @@ test("seller creates a no-known-flaws item and a revision resets old review with
   await page
     .getByRole("button", { name: "Explore the completed example" })
     .click();
+  await page.getByRole("tab", { name: "Inspect", exact: true }).click();
   await page
     .getByRole("radio", { name: "Acceptable to me", exact: true })
     .check();
@@ -166,6 +171,7 @@ test("seller creates a no-known-flaws item and a revision resets old review with
     .getByLabel("Seller description")
     .fill("A revised condition description.");
   await page.getByRole("button", { name: "Save new revision" }).click();
+  await page.getByRole("tab", { name: "Inspect", exact: true }).click();
   await expect(
     page.getByRole("radio", { name: "Not reviewed", exact: true }),
   ).toBeChecked();
@@ -281,6 +287,7 @@ test("interactive lenses, source inspector, question brief and revision diff wor
   await page
     .getByRole("button", { name: "Explore the completed example" })
     .click();
+  await page.getByRole("tab", { name: "Inspect", exact: true }).click();
   await page
     .getByRole("button", { name: "Inspect the linked source view" })
     .click();
@@ -306,6 +313,7 @@ test("interactive lenses, source inspector, question brief and revision diff wor
   await expect(
     page.getByText("Seller description changed.", { exact: true }),
   ).toBeVisible();
+  await page.getByRole("tab", { name: "Inspect", exact: true }).click();
   await expect(
     page.getByRole("radio", { name: "Not reviewed", exact: true }),
   ).toBeChecked();
@@ -336,6 +344,7 @@ test("mobile source dialog, seller editor and privacy screens remain accessible"
   await page
     .getByRole("button", { name: "Explore the completed example" })
     .click();
+  await page.getByRole("tab", { name: "Inspect", exact: true }).click();
   await page
     .getByRole("button", { name: "Inspect the linked source view" })
     .click();

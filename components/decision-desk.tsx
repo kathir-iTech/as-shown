@@ -24,45 +24,54 @@ export function DecisionDesk({ bundle }: { bundle: Bundle }) {
       </div>
       <div className="desk-body">
         <div>
-          <h2>{brief.title}</h2>
+          <h2>
+            {bundle.item.declaration === "not-supplied"
+              ? "Ask the seller."
+              : brief.title}
+          </h2>
           <p>
-            This summary follows your choices. It does not assess the garment or
-            recommend a purchase.
+            {bundle.item.declaration === "not-supplied"
+              ? "A question draft from your notes. Nothing is sent automatically."
+              : "Your preferences, not a condition verdict or purchase recommendation."}
           </p>
         </div>
-        <dl className="decision-counts">
-          <div>
-            <dt>Reviewed</dt>
-            <dd>
-              {brief.reviewed}
-              <span>/{brief.total}</span>
-            </dd>
-          </div>
-          <div>
-            <dt>Ask seller</dt>
-            <dd>{brief.questions.length}</dd>
-          </div>
-          <div>
-            <dt>Reasons to pass</dt>
-            <dd>{brief.skipped.length}</dd>
-          </div>
-        </dl>
+        {brief.total > 0 && (
+          <dl className="decision-counts">
+            <div>
+              <dt>Reviewed</dt>
+              <dd>
+                {brief.reviewed}
+                <span>/{brief.total}</span>
+              </dd>
+            </div>
+            <div>
+              <dt>Ask seller</dt>
+              <dd>{brief.questions.length}</dd>
+            </div>
+            <div>
+              <dt>Reasons to pass</dt>
+              <dd>{brief.skipped.length}</dd>
+            </div>
+          </dl>
+        )}
       </div>
-      <div className="coverage-strip">
-        {(["front", "back", "reference"] as const)
-          .filter((role) => bundle.item.assets.some((a) => a.role === role))
-          .map((role) => (
-            <span key={role}>
-              <Check size={14} />
-              {role[0].toUpperCase() + role.slice(1)} photo
-            </span>
-          ))}
-        <span>
-          <Check size={14} />
-          Revision {bundle.item.revision}
-        </span>
-        <span>Presence checked · claims unverified</span>
-      </div>
+      {bundle.item.declaration !== "not-supplied" && (
+        <div className="coverage-strip">
+          {(["front", "back", "reference"] as const)
+            .filter((role) => bundle.item.assets.some((a) => a.role === role))
+            .map((role) => (
+              <span key={role}>
+                <Check size={14} />
+                {role[0].toUpperCase() + role.slice(1)} photo
+              </span>
+            ))}
+          <span>
+            <Check size={14} />
+            Revision {bundle.item.revision}
+          </span>
+          <span>Presence checked · claims unverified</span>
+        </div>
+      )}
       <button
         className="text-button"
         onClick={() => setShowMessage(!showMessage)}

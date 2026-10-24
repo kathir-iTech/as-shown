@@ -15,6 +15,7 @@ import {
   sameOrigin,
   boundedBytes,
   previewResult,
+  previewStatus,
 } from "../provider/youcam";
 import { reserveRun, finishRun } from "../provider/ledger";
 vi.mock("../provider/ledger", async (original) => {
@@ -59,6 +60,56 @@ afterEach(() => {
 });
 const cookie = () =>
   `__Host-asshown-session=${sign({ type: "session", sid, exp: Date.now() + 60000 })}`;
+it("a failed upstream task returns actionable safe classification without leaking its private payload", async () => {
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = vi.fn().mockResolvedValue(
+    Response.json({
+      status: 200,
+      data: {
+        task_status: "error",
+        results: { url: "https://private.invalid/signed-do-not-log" },
+        error_message: "private-provider-payload",
+      },
+    }),
+  );
+  try {
+    const token = sign({
+      type: "run",
+      sid,
+      exp: Date.now() + 60000,
+      taskId: "controlled-task",
+      itemDigest: fixture.item.contentDigest,
+      referenceDigest: fixture.preview!.referenceDigest,
+      shopperDigest: fixture.preview!.shopperDigest,
+      createdAt: new Date().toISOString(),
+    });
+    const response = await previewStatus(
+      new Request("https://as-shown.vercel.app/api/preview/status", {
+        method: "POST",
+        headers: {
+          origin: "https://as-shown.vercel.app",
+          cookie: cookie(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ token }),
+      }),
+    );
+    const data = await response.json();
+    expect(data.state).toBe("error");
+    expect(data.code).toBe("PROVIDER_TASK_FAILED");
+    expect(data.message).toContain("No automatic retry");
+    expect(JSON.stringify(data)).not.toContain("private-");
+    expect(log).toHaveBeenCalledWith(
+      JSON.stringify({
+        event: "preview-task-failed",
+        code: "PROVIDER_TASK_FAILED",
+      }),
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 async function request(consent?: unknown, record: Bundle = fixture) {
   const approval = consent ?? {
     affirmative: true,

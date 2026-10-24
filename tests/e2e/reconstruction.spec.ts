@@ -112,6 +112,7 @@ for (const [slug, title] of [
     await expect(
       page.getByRole("heading", { name: title, exact: true }),
     ).toBeVisible();
+    await page.getByRole("tab", { name: "Save", exact: true }).click();
     await page
       .getByRole("checkbox", { name: /I understand a decision package/ })
       .check();
@@ -233,6 +234,7 @@ test("editing drafts survive refresh and four linked close-ups retain order with
       exact: true,
     }),
   ).toBeVisible();
+  await page.getByRole("tab", { name: "Save", exact: true }).click();
   const waiting = page.waitForEvent("download");
   await page
     .getByRole("button", { name: "Export seller item only", exact: true })
