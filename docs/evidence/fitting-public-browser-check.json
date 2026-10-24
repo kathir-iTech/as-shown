@@ -1,0 +1,17 @@
+{
+  "origin": "https://as-shown.vercel.app",
+  "startTime": "2026-10-24T03:18:14.374Z",
+  "duration": 62223.611,
+  "expected": 22,
+  "skipped": 0,
+  "unexpected": 0,
+  "flaky": 0,
+  "errorCount": 0,
+  "generationTasksSubmitted": 0,
+  "runtimeCommit": "2726cb1aa37a48d59f4408c32cd710a4f2046741",
+  "deployment": "dpl_Bzp5QBxNcM23Pb2QasdKsnussjmf",
+  "workflowRun": 40057707223,
+  "url": "https://github.com/kathir-iTech/as-shown/actions/runs/40057707223",
+  "environment": "GitHub standard Ubuntu runner",
+  "actualYouCamGenerationTasks": 0
+}

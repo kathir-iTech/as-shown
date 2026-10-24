@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-10-24T03:18:57.808Z",
+  "origin": "https://as-shown.vercel.app",
+  "schemaVersion": 3,
+  "actualSellerPublication": true,
+  "sameIntentReturnedSameRecord": true,
+  "newMetadataFreeRevision": true,
+  "privateNotesAndLooksExcluded": true,
+  "separateBrowserCollectionRead": true,
+  "managementRevocation": true,
+  "physicalDeletionConfirmed": true,
+  "laterReadDenied": true,
+  "newYouCamTasks": 0,
+  "newPaidSpending": 0,
+  "note": "One synthetic seller publication, reusing the existing capped private Blob/Redis path. Read/manage capabilities retained privately, never in this report."
+}

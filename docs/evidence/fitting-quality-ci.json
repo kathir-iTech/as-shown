@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-10-24T03:17:00.000Z",
+  "commit": "2726cb1aa37a48d59f4408c32cd710a4f2046741",
+  "workflowRun": 40057335818,
+  "url": "https://github.com/kathir-iTech/as-shown/actions/runs/40057335818",
+  "environment": "GitHub standard Ubuntu runner",
+  "unitIntegrationPassed": 73,
+  "browserPassed": 22,
+  "failed": 0,
+  "skipped": 0,
+  "flaky": 0,
+  "lint": true,
+  "typecheck": true,
+  "format": true,
+  "build": true,
+  "productionDependencyAudit": true,
+  "actualYouCamGenerationTasks": 0,
+  "note": "Ordinary browser provider responses are controlled. Real provider evidence is separate."
+}

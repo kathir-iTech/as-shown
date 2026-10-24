@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-24T02:33:09.758Z",
+  "category": "upper_body",
+  "origin": "https://as-shown.vercel.app",
+  "syntheticInputsOnly": true,
+  "reference": "Existing synthetic shirt reference",
+  "condition": "not-supplied",
+  "realProviderResult": true,
+  "resultDigest": "1ec68c764eaba20b7ea38b28f342eb9798c6ce1567c372b580422a6fff949b8f",
+  "resultBytes": 201123,
+  "packageVerified": true,
+  "optedInLookReopened": true,
+  "creationRequestsThisInvocation": 1,
+  "browserExceptions": 0,
+  "newPaidSpending": 0,
+  "limitation": "Synthetic integration check, not real-user fit, condition, identity or usefulness validation.",
+  "verifiedOnCommit": "a72114781730f420c17a4675c70f7d6febb259a1",
+  "providerFlowSourceUnchanged": true,
+  "followupChanges": "Associated-draft deletion fix and scoped storage dependency security patches. No new category generation claimed."
+}

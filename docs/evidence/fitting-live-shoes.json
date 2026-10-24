@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-24T02:38:42.804Z",
+  "category": "shoes",
+  "origin": "https://as-shown.vercel.app",
+  "syntheticInputsOnly": true,
+  "reference": "Existing synthetic full-length recorded outfit; category-specific transfer integration only, not accuracy evidence",
+  "condition": "not-supplied",
+  "realProviderResult": true,
+  "resultDigest": "c7cd012aeb0bfee497ac90021d6d9bb72256e94734751251f102d57b70c99452",
+  "resultBytes": 196518,
+  "packageVerified": true,
+  "optedInLookReopened": true,
+  "creationRequestsThisInvocation": 1,
+  "browserExceptions": 0,
+  "newPaidSpending": 0,
+  "limitation": "Synthetic integration check, not real-user fit, condition, identity or usefulness validation.",
+  "verifiedOnCommit": "a72114781730f420c17a4675c70f7d6febb259a1",
+  "providerFlowSourceUnchanged": true,
+  "followupChanges": "Associated-draft deletion fix and scoped storage dependency security patches. No new category generation claimed."
+}

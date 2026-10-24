@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-24T02:34:21.501Z",
+  "category": "lower_body",
+  "origin": "https://as-shown.vercel.app",
+  "syntheticInputsOnly": true,
+  "reference": "Existing synthetic full-length recorded outfit; category-specific transfer integration only, not accuracy evidence",
+  "condition": "not-supplied",
+  "realProviderResult": true,
+  "resultDigest": "1e3d3c2b5c1ef0a79d7e3d5da58f471bf0092e98b759e0f2f23e4287bf6ee967",
+  "resultBytes": 182054,
+  "packageVerified": true,
+  "optedInLookReopened": true,
+  "creationRequestsThisInvocation": 1,
+  "browserExceptions": 0,
+  "newPaidSpending": 0,
+  "limitation": "Synthetic integration check, not real-user fit, condition, identity or usefulness validation.",
+  "verifiedOnCommit": "a72114781730f420c17a4675c70f7d6febb259a1",
+  "providerFlowSourceUnchanged": true,
+  "followupChanges": "Associated-draft deletion fix and scoped storage dependency security patches. No new category generation claimed."
+}

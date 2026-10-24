@@ -1,8 +1,10 @@
 # As-Shown — technical handoff
 
-## Upload-first reconstruction in progress
+## Current delivery — upload-first reconstruction, 24 October 2026
 
-The owner approved a new product reconstruction after the release described below. The dated evidence in this document covers the previous runtime, not the new build. See `docs/FITTING_ROOM.md` for the new workflow, boundaries and verification status. Do not treat the historical signoff below as verification of new code.
+The accepted reconstruction is live at https://as-shown.vercel.app, runtime `2726cb1aa37a48d59f4408c32cd710a4f2046741`, deployment `dpl_Bzp5QBxNcM23Pb2QasdKsnussjmf` READY. Own-item Quick Try, four garment categories, a real personal rack, opt-in local looks, seller collections and the reconstructed interface are delivered. Final quality: 73 unit/integration + 22 browser cases passed. Final public run: all 22 passed, zero failures/skips/flaky cases. Four real synthetic category runs and actual seller publication/collection/revocation/deletion are separately documented. The final production dependency audit returned zero known vulnerabilities after scoped patches; the changed storage network path received its own actual publish/read/revoke/delete check. Eight free units used, INR 0 extra spent, latest measured balance 958. No owner technical setup remains for this accepted build.
+
+See [the current workflow and verification](FITTING_ROOM.md). The dated sections below are historical evidence for the previous runtime, not relabelled tests of this reconstruction. Video and final Devpost submission remain the owner's deliverables.
 
 23 October 2026. The bounded, non-commercial hackathon build is implemented, deployed and technically verified. No known blocking implementation task remains for this release. The owner's remaining deliverables are the video and final Devpost submission.
 

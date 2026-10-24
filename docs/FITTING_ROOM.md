@@ -1,6 +1,6 @@
 # As-Shown — upload-first fitting room
 
-Owner-approved reconstruction, 23 October 2026. Verification is in progress; this document is not a production signoff.
+Owner-approved reconstruction, delivered 24 October 2026. Live at [as-shown.vercel.app](https://as-shown.vercel.app). Runtime `2726cb1aa37a48d59f4408c32cd710a4f2046741`, production deployment `dpl_Bzp5QBxNcM23Pb2QasdKsnussjmf` READY. The accepted technical reconstruction is implemented and verified within the boundaries below.
 
 ## Workflow
 
@@ -21,6 +21,17 @@ Owner-approved reconstruction, 23 October 2026. Verification is in progress; thi
 
 ## Verification status
 
-Initial 73 unit/integration cases passed with one worker and unchanged test timeouts. An earlier concurrent local run timed out in two archive tests; it is not counted as a pass. The initial eight desktop/mobile visual captures had no browser exceptions or horizontal overflow; visual inspection found and corrected an inherited decision-panel contrast regression.
+- [Final quality run](https://github.com/kathir-iTech/as-shown/actions/runs/40057335818): 73 unit/integration cases, all 22 browser cases, lint, typecheck, formatting, production audit and production build passed.
+- [Final public-site run](https://github.com/kathir-iTech/as-shown/actions/runs/40057707223): all 22 cases passed, zero failures/skips/flaky cases, about 62 seconds. Provider success/failure/recovery responses in this routine suite are controlled; it submits no real generations.
+- Eight refreshed public desktop/mobile captures: zero browser exceptions or horizontal overflow, with destination paths checked before each screenshot. Source/preview inspection, quick uploads, My Rack, generated-look opt-in/removal, legacy archives, keyboard dialogs, reduced motion, accessibility checks, rapid metadata edits and deletion of associated unfinished drafts are covered.
+- Four separate real synthetic-input YouCam runs: upper-body, lower-body, full-body and shoes. Each result was downloaded, verified in an exported archive, deliberately kept on-device and reopened after refresh. These ran on the preceding `a721147` build; follow-ups close draft/deletion behavior and patch storage dependencies. Provider, model, archive and preview-execution source are unchanged. No repeated generations were needed.
+- One real schema-3 seller publication: same-intent replay returned the same record; a separate browser opened the shared collection; private notes/looks were excluded; revocation acknowledged stored-file deletion and a later read returned 410. An initial connection reset was recovered using the original session, item digest and intent—not a new publication.
+- The storage network patch received one deliberately separate synthetic publication check on final runtime `2726cb1`: same-intent replay, separate-browser collection read, privacy, revocation, stored-file deletion and later 410 all passed. No YouCam tasks were submitted.
+- [Dependency security closure](DEPENDENCY_SECURITY.md): the initial audit findings were corrected with scoped compatible patches; the production audit returned zero known vulnerabilities. Fresh installation and audit also passed in CI. This is not a security certification.
+- Four real generations used eight free units: authenticated balance 966 before → 958 after, cost two per result. Extra paid spending: INR 0. Existing active Hobby hosting verified; no purchases, cards, top-ups, upgrades or allowance resets.
 
-The first browser run exposed missing local dummy-session configuration in its manually started server, an over-broad alert selector and an oversized combined scenario. The subsequent run exposed a real pre-hydration upload/title race. The interface now keeps input controls disabled until client handlers are ready, with a delayed-script regression case. These stopped/failed runs are not presented as successful verification. Full corrected local and public verification is still pending.
+Earlier failures are retained as failures, not relabelled as passes. They led to fixes for hydration readiness, asynchronous checkbox feedback, stale metadata overwrites, development remount duplicate reads, mobile photo-control overflow and entry-animation contrast. The acceptance assertions remain; lengthy multi-viewport scenarios were separated into independent cases rather than deleting checks.
+
+Reports in [docs/evidence](evidence) distinguish controlled tests from actual provider/storage calls. This is not a full human study, physical-device/Safari audit, load test, security certification, commercial impact proof or guarantee of fit, unlimited free operation, absolute novelty or winning.
+
+The current provider policy describes USA processing/storage and generally 30-day retention with exceptions; app-local clearing cannot delete provider-held data. See the [official API privacy policy](https://www.makeupar.com/perfectbeauty/youcam/privacy-policy-api) and the in-app approval notice.

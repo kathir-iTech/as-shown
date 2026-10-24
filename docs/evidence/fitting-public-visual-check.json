@@ -1,0 +1,56 @@
+{
+  "checkedAt": "2026-10-24T03:19:37.522Z",
+  "origin": "https://as-shown.vercel.app",
+  "screens": [
+    {
+      "name": "fitting-room",
+      "width": 1440,
+      "path": "/",
+      "horizontalOverflow": false
+    },
+    {
+      "name": "quick-try",
+      "width": 1440,
+      "path": "/inspect/684622b3-4f26-48e9-8f0d-83ff71bb5482",
+      "horizontalOverflow": false
+    },
+    {
+      "name": "photo-approval",
+      "width": 1440,
+      "path": "/inspect/684622b3-4f26-48e9-8f0d-83ff71bb5482",
+      "horizontalOverflow": false
+    },
+    {
+      "name": "my-rack",
+      "width": 1440,
+      "path": "/rack",
+      "horizontalOverflow": false
+    },
+    {
+      "name": "fitting-room",
+      "width": 390,
+      "path": "/",
+      "horizontalOverflow": false
+    },
+    {
+      "name": "quick-try",
+      "width": 390,
+      "path": "/inspect/8f435631-2766-4491-9aa3-8c2d15faf062",
+      "horizontalOverflow": false
+    },
+    {
+      "name": "photo-approval",
+      "width": 390,
+      "path": "/inspect/8f435631-2766-4491-9aa3-8c2d15faf062",
+      "horizontalOverflow": false
+    },
+    {
+      "name": "my-rack",
+      "width": 390,
+      "path": "/rack",
+      "horizontalOverflow": false
+    }
+  ],
+  "exceptions": [],
+  "actualGenerationRequests": 0
+}
