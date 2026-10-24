@@ -13,4 +13,4 @@ Start with [the main README](../README.md) for the product, or [the judge walkth
 
 [Final readiness](FINAL_READINESS.md), [fitting-room rebuild](FITTING_ROOM.md) and older evidence retain historical observations. Use their dates and stated scopes; a recorded provider result is not a new live request, and controlled browser responses are not provider execution.
 
-Owner recording guides and large raw video files are packaged outside this repository. No private chat history, credentials, account screenshots, request capabilities or browser profiles are published here.
+Owner recording guides and large raw video files are packaged outside this repository. No private chat history, credentials, account screenshots, request capabilities or browser profiles are published here. [Repository notices](../NOTICE.md) preserve asset and third-party attribution separately from the standard MIT license text.
