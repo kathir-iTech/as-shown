@@ -30,7 +30,7 @@ The provider policy is external to the app. Retention, USA storage, biometric im
 2. The app verifies the complete local record; affirmative consent is bound to the current item and operation.
 3. The server checks same-origin, a signed HTTP-only session cookie, bounded multipart bytes, admission structure, consent age/version, actual image decoding and the exact garment-reference digest.
 4. A Free Upstash Redis ledger atomically reserves a session-bound request intent, two units of the app's lifetime allowance, and hourly session/network admission counters. Replayed intents reuse a known task or stop; they do not upload again. It then paginates authenticated feature costs and checks active units against the reserve. Failure to verify pauses generation.
-5. It registers and PUT-uploads only two files, then creates one explicit Clothes VTO V3 upper-body task.
+5. It registers and PUT-uploads only two files, then creates one Clothes VTO V3 task using the explicitly selected upper-body, lower-body, full-body or shoe category.
 6. A signed token binds task ID, session, item digest and input digests. Short status requests never recreate tasks. No server function sleeps waiting for generation.
 7. Result retrieval queries the known provider task and only downloads from reviewed provider-storage hosts. The client cannot submit an arbitrary download URL.
 8. The actual result bytes are checked, rendered and optionally exported.
@@ -67,7 +67,7 @@ Missing Redis configuration, unreadable ledger data, network errors or service l
 
 ## Interface and decision helpers
 
-The studio displays style and original source simultaneously (stacked on narrow screens), with source tabs, zoom, a keyboard-operable split control and linked detail selection. Seller regions are drawn, moved with arrow keys, resized with Shift + arrows, or entered numerically. Replacing their source resets the marker and requires reconfirmation. Each issue supports four replaceable/reorderable close-ups. Drafts autosave by exact base revision and restore after refresh. Buyer recovery is per item/revision rather than one global pending slot. Stable Next.js routes support reload/back/forward; device-only records honestly require import on a different device.
+The studio separates Try on, Inspect and Save into keyboard-accessible focused views. Desktop comparison keeps style and original source side by side; narrow screens offer a photo switch rather than two full-height stacked images. Source tabs, zoom, a keyboard-operable split control and linked detail selection remain available. Seller regions are drawn, moved with arrow keys, resized with Shift + arrows, or entered numerically. Replacing their source resets the marker and requires reconfirmation. Each issue supports four replaceable/reorderable close-ups. Drafts autosave by exact base revision and restore after refresh. Buyer recovery is per item/revision rather than one global pending slot. Stable Next.js routes support reload/back/forward; device-only records honestly require import on a different device.
 
 The source inspector displays markers only on original images. Decision briefs and seller questions are deterministic helpers, not another AI model. Revision changes reset buyer decisions; unchanged prepared references may explicitly reuse a prior style result. Reduced motion and keyboard paths remain available. Runtime CSP uses a nonce plus strict-dynamic without unsafe-inline scripts, prohibits embedding, and allows only bounded same-origin API calls. No personal data is placed in OG images.
 
