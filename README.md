@@ -10,7 +10,7 @@ This is a limited-credit, non-commercial hackathon prototype—not a marketplace
 
 Website: [as-shown.vercel.app](https://as-shown.vercel.app) · [Source repository](https://github.com/kathir-iTech/as-shown)
 
-![As-Shown studio: a YouCam style preview beside the original garment evidence](docs/images/studio-desktop.png)
+![As-Shown upload-first fitting room: bring your own garment photograph](docs/images/studio-desktop.png)
 
 Previously named AsShown. The old website remains available for browser-local records saved on that origin; export there and import here to move a record. The hyphenated name does not change the archive format, consent-policy identifiers or existing storage keys. Historical evidence retains the names and URLs that were actually tested.
 
@@ -84,7 +84,7 @@ The verifier checks bounded archive structure, manifest/file agreement, image he
 
 ## Architecture and privacy
 
-Next.js 16 / React 19 / TypeScript, Zod, Sharp and fflate. Records and autosaved drafts use browser memory and IndexedDB. Upstash Redis stores operational reservations, digest commitments, recovery information, publication metadata and pseudonymous rate counters—not photos or buyer notes. Optional private Blob storage holds only explicitly published seller copies; there is no personal-photo library, account system, analytics SDK or general-purpose LLM dependency. Bricolage Grotesque and Manrope are self-hosted OFL fonts.
+Next.js 16 / React 19 / TypeScript, Zod, Sharp and fflate. Records and autosaved drafts use browser memory and IndexedDB. Upstash Redis stores operational reservations, digest commitments, recovery information, publication metadata and pseudonymous rate counters—not photos or buyer notes. Optional private Blob storage holds only explicitly published seller copies; there is no personal cloud-photo library, account system, analytics SDK or general-purpose LLM dependency. Bricolage Grotesque and Manrope are self-hosted OFL fonts.
 
 The server validates a minimal structural admission containing identifiers, dimensions, sizes and digests—not seller descriptions, flaw annotations or buyer notes. The complete record is checked in the browser. A structural commitment is not independent verification of withheld source photos. Signed, session-bound run tokens allow status/result retrieval without accepting arbitrary result URLs from the client.
 
