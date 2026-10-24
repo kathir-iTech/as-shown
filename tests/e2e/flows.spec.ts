@@ -150,6 +150,7 @@ test("seller creates a no-known-flaws item and a revision resets old review with
   await expect(
     page.getByRole("heading", { name: "My test shirt", exact: true }),
   ).toBeVisible();
+  await page.getByRole("tab", { name: "Inspect", exact: true }).click();
   await expect(
     page
       .getByRole("complementary")
@@ -158,7 +159,9 @@ test("seller creates a no-known-flaws item and a revision resets old review with
         { exact: true },
       ),
   ).toBeVisible();
-  await page.getByRole("button", { name: "All stories" }).click();
+  await page
+    .getByRole("button", { name: "Back to fitting room", exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Explore the completed example" })
     .click();
