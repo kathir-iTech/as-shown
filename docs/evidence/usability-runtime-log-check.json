@@ -1,0 +1,8 @@
+{
+  "checkedAt": "2026-10-24T05:14:02.004Z",
+  "deployment": "dpl_5q1C3yAfe3MkSJurxWnnsteW8n5s",
+  "queryWindowMinutes": 10,
+  "matchingErrorEventsReturned": 0,
+  "continuousMonitoringClaimed": false,
+  "note": "A bounded recent query, not proof of permanent provider availability or a security certification."
+}

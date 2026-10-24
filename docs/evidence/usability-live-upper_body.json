@@ -1,0 +1,18 @@
+{
+  "checkedAt": "2026-10-24T05:13:11.771Z",
+  "category": "upper_body",
+  "origin": "https://as-shown.vercel.app",
+  "syntheticInputsOnly": true,
+  "reference": "Existing synthetic shirt reference",
+  "condition": "not-supplied",
+  "realProviderResult": true,
+  "resultDigest": "cebe70fb8bb331f967f2b941b73f1aaef585ed17237e9a7d82b0bebab69b93bd",
+  "resultBytes": 201123,
+  "packageVerified": true,
+  "optedInLookReopened": true,
+  "creationRequestsThisInvocation": 1,
+  "browserExceptions": 0,
+  "newPaidSpending": 0,
+  "limitation": "Synthetic integration check, not real-user fit, condition, identity or usefulness validation.",
+  "verifiedOnCommit": "3f82b73c1a3593c76ada8dd5c957ad7481d104dc"
+}

@@ -1,0 +1,104 @@
+{
+  "checkedAt": "2026-10-24T05:16:45.778Z",
+  "origin": "https://as-shown.vercel.app",
+  "screens": [
+    {
+      "name": "home",
+      "width": 1440,
+      "horizontalOverflow": false,
+      "visibleWords": 182,
+      "height": 1145,
+      "skipLinkFocused": false
+    },
+    {
+      "name": "try-on",
+      "width": 1440,
+      "horizontalOverflow": false,
+      "visibleWords": 146,
+      "height": 1202,
+      "skipLinkFocused": false
+    },
+    {
+      "name": "photo-ready",
+      "width": 1440,
+      "horizontalOverflow": false,
+      "visibleWords": 142,
+      "height": 1202,
+      "skipLinkFocused": false
+    },
+    {
+      "name": "inspect",
+      "width": 1440,
+      "horizontalOverflow": false,
+      "visibleWords": 122,
+      "height": 1257,
+      "skipLinkFocused": false
+    },
+    {
+      "name": "save",
+      "width": 1440,
+      "horizontalOverflow": false,
+      "visibleWords": 117,
+      "height": 1202,
+      "skipLinkFocused": false
+    },
+    {
+      "name": "quick-edit",
+      "width": 1440,
+      "horizontalOverflow": false,
+      "visibleWords": 149,
+      "height": 1202,
+      "skipLinkFocused": false
+    },
+    {
+      "name": "home",
+      "width": 390,
+      "horizontalOverflow": false,
+      "visibleWords": 175,
+      "height": 2015,
+      "skipLinkFocused": false
+    },
+    {
+      "name": "try-on",
+      "width": 390,
+      "horizontalOverflow": false,
+      "visibleWords": 130,
+      "height": 1758,
+      "skipLinkFocused": false
+    },
+    {
+      "name": "photo-ready",
+      "width": 390,
+      "horizontalOverflow": false,
+      "visibleWords": 126,
+      "height": 1807,
+      "skipLinkFocused": false
+    },
+    {
+      "name": "inspect",
+      "width": 390,
+      "horizontalOverflow": false,
+      "visibleWords": 113,
+      "height": 1625,
+      "skipLinkFocused": false
+    },
+    {
+      "name": "save",
+      "width": 390,
+      "horizontalOverflow": false,
+      "visibleWords": 108,
+      "height": 1363,
+      "skipLinkFocused": false
+    },
+    {
+      "name": "quick-edit",
+      "width": 390,
+      "horizontalOverflow": false,
+      "visibleWords": 140,
+      "height": 1363,
+      "skipLinkFocused": false
+    }
+  ],
+  "exceptions": [],
+  "generationRequests": 0
+}

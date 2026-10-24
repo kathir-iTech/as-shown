@@ -1,0 +1,17 @@
+{
+  "checkedAt": "2026-10-24T05:11:39.167Z",
+  "commit": "3f82b73c1a3593c76ada8dd5c957ad7481d104dc",
+  "workflowRun": 40064623166,
+  "job": 120785147852,
+  "url": "https://github.com/kathir-iTech/as-shown/actions/runs/40064623166",
+  "conclusion": "success",
+  "unitIntegrationPassed": 77,
+  "browserPassed": 27,
+  "lint": true,
+  "typecheck": true,
+  "format": true,
+  "build": true,
+  "productionDependencyAudit": true,
+  "actualYouCamGenerationTasks": 0,
+  "note": "Controlled provider responses in ordinary tests. Separately recorded live proof is not counted as mocked success."
+}

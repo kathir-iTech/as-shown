@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-10-24T05:02:51.016Z",
+  "scope": "npm audit --omit=dev",
+  "vulnerabilities": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "productionDependencies": 61,
+  "blobVersion": "2.8.1",
+  "undiciVersion": "6.29.1",
+  "undiciResolved": "https://registry.npmjs.org/undici/-/undici-6.29.1.tgz",
+  "undiciIntegrityVerifiedAgainstOfficialRegistry": true,
+  "nestedCliConfigZodVersion": "4.6.7",
+  "sdkExportsAndConfigSchemaSmokePassed": true,
+  "note": "Scoped overrides retain Blob 2.8.1 API and use patched Undici 6.x / Zod 4.x. Official Undici tarball pinned because npm's version listing returned stale metadata; lockfile integrity matches the official version endpoint. Audit is a point-in-time check, not a security certification.",
+  "advisories": [
+    "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5",
+    "https://github.com/advisories/GHSA-xjj6-f33q-929c",
+    "https://github.com/advisories/GHSA-4qv8-2p9j-2685"
+  ]
+}

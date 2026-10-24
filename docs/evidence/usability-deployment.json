@@ -1,0 +1,9 @@
+{
+  "runtimeCommit": "3f82b73c1a3593c76ada8dd5c957ad7481d104dc",
+  "deployment": "dpl_5q1C3yAfe3MkSJurxWnnsteW8n5s",
+  "origin": "https://as-shown.vercel.app",
+  "state": "READY",
+  "target": "production",
+  "aliases": ["as-shown.vercel.app", "asshown.vercel.app"],
+  "existingProjectAndProtectionPreserved": true
+}

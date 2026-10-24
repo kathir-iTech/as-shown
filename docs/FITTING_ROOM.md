@@ -1,5 +1,7 @@
 # As-Shown — upload-first fitting room
 
+Historical reconstruction evidence. The subsequent [focused usability release](USABILITY_RELEASE.md) is the current workflow and verification authority; its tabs and failure recovery supersede the layout described below.
+
 Owner-approved reconstruction, delivered 24 October 2026. Live at [as-shown.vercel.app](https://as-shown.vercel.app). Runtime `2726cb1aa37a48d59f4408c32cd710a4f2046741`, production deployment `dpl_Bzp5QBxNcM23Pb2QasdKsnussjmf` READY. The accepted technical reconstruction is implemented and verified within the boundaries below.
 
 ## Workflow

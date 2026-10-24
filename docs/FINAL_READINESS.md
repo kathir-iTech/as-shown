@@ -1,5 +1,11 @@
 # As-Shown — technical handoff
 
+## Current delivery — focused usability release, 24 October 2026
+
+The owner's final usability request supersedes the earlier sign-offs below. Try on / Inspect / Save, mobile photo switching, quick edits, safe failure recovery and paused-task duplicate prevention are implemented and live. Runtime `3f82b73c1a3593c76ada8dd5c957ad7481d104dc` / `dpl_5q1C3yAfe3MkSJurxWnnsteW8n5s` READY. Quality: 77 unit/integration + all 27 browser cases and production checks passed. Public deployment: all 27 passed. One separately recorded synthetic live task/export/local-save/reopen passed; balance 958 → 956 free units, INR 0 additional paid spending. No bug-free or blanket production certification is claimed.
+
+See [the current usability release and proofs](USABILITY_RELEASE.md). The remaining owner deliverables are the video and final Devpost submission. Previous runtime evidence below is historical.
+
 ## Current delivery — upload-first reconstruction, 24 October 2026
 
 The accepted reconstruction is live at https://as-shown.vercel.app, runtime `2726cb1aa37a48d59f4408c32cd710a4f2046741`, deployment `dpl_Bzp5QBxNcM23Pb2QasdKsnussjmf` READY. Own-item Quick Try, four garment categories, a real personal rack, opt-in local looks, seller collections and the reconstructed interface are delivered. Final quality: 73 unit/integration + 22 browser cases passed. Final public run: all 22 passed, zero failures/skips/flaky cases. Four real synthetic category runs and actual seller publication/collection/revocation/deletion are separately documented. The final production dependency audit returned zero known vulnerabilities after scoped patches; the changed storage network path received its own actual publish/read/revoke/delete check. Eight free units used, INR 0 extra spent, latest measured balance 958. No owner technical setup remains for this accepted build.
